@@ -1,0 +1,348 @@
+---
+title: Compiler Warning Suppression
+description: How CommentSense automatically suppresses overlapping compiler warnings to provide a cleaner error list
+---
+
+CommentSense uses a `DiagnosticSuppressor` to automatically suppress built-in C# compiler warnings that overlap with its own, more comprehensive diagnostics. This prevents duplicate warnings and provides a cleaner development experience.
+
+## Suppressed Compiler Warnings
+
+The following compiler diagnostics are suppressed when CommentSense is active:
+
+<AccordionGroup>
+  <Accordion title="CS1591: Missing XML comment for publicly visible type or member">
+    **Why it's suppressed**: CommentSense provides **CSENSE001** which offers more granular control over which members require documentation, including:
+    - Configurable visibility thresholds
+    - Support for `<inheritdoc />` tags
+    - Options to exclude constants and enum members
+    - Better detection of implicit documentation inheritance
+    
+    **CommentSense equivalent**: CSENSE001
+  </Accordion>
+  
+  <Accordion title="CS1573: Parameter has no matching param tag in XML comment">
+    **Why it's suppressed**: CommentSense provides **CSENSE002** which not only detects missing parameter documentation but also:
+    - Offers automatic code fixes to generate missing tags
+    - Provides fuzzy matching to suggest renaming stray tags
+    - Supports Fix All operations across documents, projects, or solutions
+    
+    **CommentSense equivalent**: CSENSE002
+  </Accordion>
+  
+  <Accordion title="CS1572: XML comment has a param tag for a non-existent parameter">
+    **Why it's suppressed**: CommentSense provides **CSENSE003** with enhanced capabilities:
+    - Automatically removes stray tags via code fix
+    - Uses fuzzy matching to detect renamed parameters
+    - Offers intelligent rename suggestions
+    - Supports Fix All for bulk cleanup
+    
+    **CommentSense equivalent**: CSENSE003
+  </Accordion>
+  
+  <Accordion title="CS1571: XML comment has a duplicate param tag">
+    **Why it's suppressed**: CommentSense provides **CSENSE009** which:
+    - Detects duplicate parameter tags
+    - Provides code fixes to remove duplicates
+    - Works with Fix All to clean up entire projects
+    
+    **CommentSense equivalent**: CSENSE009
+  </Accordion>
+  
+  <Accordion title="CS1584: XML comment has syntactically incorrect cref attribute">
+    **Why it's suppressed**: CommentSense provides **CSENSE007** for validating `cref` attributes with:
+    - More detailed error messages
+    - Better integration with the analyzer pipeline
+    - Consistent diagnostic format with other CommentSense rules
+    
+    **CommentSense equivalent**: CSENSE007
+  </Accordion>
+  
+  <Accordion title="CS1574: XML comment has cref attribute that could not be resolved">
+    **Why it's suppressed**: CommentSense provides **CSENSE007** which handles unresolved `cref` attributes and additionally offers:
+    - **CSENSE025**: Detects accessibility mismatches (e.g., public member referencing internal type)
+    - Better semantic analysis of symbol references
+    
+    **CommentSense equivalents**: CSENSE007, CSENSE025
+  </Accordion>
+  
+  <Accordion title="CS1658: Error in XML comment (e.g., syntax error in cref)">
+    **Why it's suppressed**: This is a general XML comment error diagnostic that overlaps with multiple CommentSense rules:
+    - CSENSE007 (invalid cref)
+    - CSENSE022 (stray summary tags)
+    - CSENSE023 (stray exception tags)
+    
+    **CommentSense equivalents**: CSENSE007, CSENSE022, CSENSE023
+  </Accordion>
+</AccordionGroup>
+
+## How Suppression Works
+
+CommentSense implements suppression through the `CommentSenseSuppressor` class, which is a Roslyn `DiagnosticSuppressor`:
+
+```csharp
+// From CommentSenseSuppressor.cs
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public class CommentSenseSuppressor : DiagnosticSuppressor
+{
+    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions => 
+        CommentSenseSuppressions.SupportedSuppressions;
+
+    public override void ReportSuppressions(SuppressionAnalysisContext context)
+    {
+        foreach (var diagnostic in context.ReportedDiagnostics)
+        {
+            if (CommentSenseSuppressions.SuppressionMap.TryGetValue(
+                diagnostic.Id, out var descriptor))
+            {
+                if (ShouldSuppress(diagnostic, context))
+                    context.ReportSuppression(Suppression.Create(descriptor, diagnostic));
+            }
+        }
+    }
+}
+```
+
+### Suppression Descriptors
+
+Each suppressed diagnostic has a corresponding `SuppressionDescriptor` defined in `CommentSenseSuppressions.cs`:
+
+```csharp
+private static readonly SuppressionDescriptor MissingXmlCommentSuppression = new(
+    "CSENSE_SUP001",  // Suppression ID
+    "CS1591",          // Suppressed diagnostic ID
+    "Superseded by CommentSense analysis");
+
+private static readonly SuppressionDescriptor MissingParamTagSuppression = new(
+    "CSENSE_SUP002",
+    "CS1573",
+    "Superseded by CommentSense analysis");
+
+private static readonly SuppressionDescriptor StrayParamTagSuppression = new(
+    "CSENSE_SUP003",
+    "CS1572",
+    "Superseded by CommentSense analysis");
+
+private static readonly SuppressionDescriptor DuplicateParamTagSuppression = new(
+    "CSENSE_SUP004",
+    "CS1571",
+    "Superseded by CommentSense analysis");
+
+private static readonly SuppressionDescriptor InvalidCrefSuppression = new(
+    "CSENSE_SUP005",
+    "CS1584",
+    "Superseded by CommentSense analysis");
+
+private static readonly SuppressionDescriptor UnresolvedCrefSuppression = new(
+    "CSENSE_SUP006",
+    "CS1574",
+    "Superseded by CommentSense analysis");
+
+private static readonly SuppressionDescriptor InvalidCrefSecondarySuppression = new(
+    "CSENSE_SUP007",
+    "CS1658",
+    "Superseded by CommentSense analysis");
+```
+
+## Suppression Modes
+
+CommentSense supports two suppression modes:
+
+### Global Suppression (Default)
+
+By default, compiler warnings are suppressed **globally** for the entire project. This means:
+
+- All instances of CS1591, CS1573, CS1572, etc. are hidden
+- CommentSense rules (CSENSE001, CSENSE002, etc.) are shown instead
+- Simpler configuration, cleaner error list
+
+```csharp
+// From CommentSenseSuppressor.cs:31
+private static bool ShouldSuppress(Diagnostic diagnostic, SuppressionAnalysisContext context)
+{
+    var options = CommentSenseOptions.GetOptions(...);
+    if (!options.EnableConditionalSuppression)
+        return true;  // Suppress globally
+    
+    // ... conditional logic
+}
+```
+
+### Conditional Suppression
+
+If you want compiler warnings to still appear for members that CommentSense doesn't analyze (e.g., because they're excluded or below the visibility threshold), enable conditional suppression:
+
+```ini
+[*.cs]
+comment_sense.enable_conditional_suppression = true
+```
+
+With conditional suppression enabled:
+
+1. CommentSense checks if the member is eligible for analysis based on:
+   - Visibility level (`comment_sense.visibility_level`)
+   - Constant exclusion (`comment_sense.exclude_constants`)
+   - Enum exclusion (`comment_sense.exclude_enums`)
+
+2. If the member **is** analyzed by CommentSense → suppress compiler warning
+3. If the member **is not** analyzed → allow compiler warning to show
+
+```csharp
+// From CommentSenseSuppressor.cs:44
+private static bool IsSymbolEligibleForSuppression(
+    Diagnostic diagnostic, 
+    SyntaxTree tree, 
+    SuppressionAnalysisContext context, 
+    CommentSenseOptions options)
+{
+    var symbol = node.GetAssociatedSymbol(model);
+    if (symbol == null)
+        return true;
+
+    // Only suppress if this member would be analyzed by CommentSense
+    if (!symbol.IsEligibleForAnalysis(options.VisibilityLevel))
+        return false;
+
+    if (options.ExcludeConstants && symbol is IFieldSymbol { IsConst: true })
+        return false;
+
+    return true;
+}
+```
+
+### When to Use Conditional Suppression
+
+<Tip>
+Conditional suppression is useful if you:
+- Exclude certain member types (constants, enums) from CommentSense
+- Still want the standard C# compiler to warn about those excluded members
+- Want different documentation requirements for different parts of your codebase
+</Tip>
+
+<CodeGroup>
+```ini Global Suppression (Default)
+[*.cs]
+# CommentSense only analyzes public/protected members
+comment_sense.visibility_level = protected
+
+# Excludes constants from analysis
+comment_sense.exclude_constants = true
+
+# Global suppression (default)
+# Result: CS1591 is suppressed everywhere, including for constants
+```
+
+```ini Conditional Suppression
+[*.cs]
+# CommentSense only analyzes public/protected members
+comment_sense.visibility_level = protected
+
+# Excludes constants from analysis
+comment_sense.exclude_constants = true
+
+# Enable conditional suppression
+comment_sense.enable_conditional_suppression = true
+
+# Result: CS1591 still appears for constants
+# CSENSE001 appears for public/protected non-constant members
+```
+</CodeGroup>
+
+## Configuration Examples
+
+### Scenario 1: Clean Error List
+
+**Goal**: Only show CommentSense diagnostics, no compiler warnings.
+
+```ini
+[*.cs]
+# Default behavior - no configuration needed
+# All compiler warnings (CS1591, CS1573, etc.) are suppressed globally
+```
+
+### Scenario 2: Partial Coverage
+
+**Goal**: CommentSense analyzes public APIs, but compiler warnings should still appear for internal members.
+
+```ini
+[*.cs]
+comment_sense.visibility_level = public
+comment_sense.enable_conditional_suppression = true
+```
+
+**Result**:
+- Public members: CommentSense rules (CSENSE001, etc.)
+- Internal/private members: Compiler warnings (CS1591, etc.)
+
+### Scenario 3: Exclude Specific Member Types
+
+**Goal**: Skip documentation for constants and enums, but still get compiler warnings for them.
+
+```ini
+[*.cs]
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+comment_sense.enable_conditional_suppression = true
+```
+
+## Viewing Suppressed Warnings
+
+To see which warnings are being suppressed:
+
+<Steps>
+  <Step title="Open Error List">
+    In Visual Studio, go to **View → Error List**.
+  </Step>
+  
+  <Step title="Show Suppressed Messages">
+    Click the filter dropdown and ensure **Suppressed Messages** is checked.
+  </Step>
+  
+  <Step title="Review Suppressions">
+    Suppressed diagnostics will appear grayed out with a note: "Suppressed: Superseded by CommentSense analysis".
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<Accordion title="I still see CS1591 warnings">
+  This can happen if:
+  1. CommentSense is not installed or enabled
+  2. The analyzer is disabled in your project settings
+  3. You have `<NoWarn>1591</NoWarn>` in your `.csproj` (this takes precedence)
+  
+  **Solution**: Ensure CommentSense is referenced and remove manual `NoWarn` configurations.
+</Accordion>
+
+<Accordion title="I want to disable specific CommentSense rules">
+  Use a `.editorconfig` or `.globalconfig` to set severity:
+  
+  ```ini
+  [*.cs]
+  dotnet_diagnostic.CSENSE001.severity = none
+  dotnet_diagnostic.CSENSE016.severity = suggestion
+  ```
+  
+  See [Configuration](/configuration) for more options.
+</Accordion>
+
+<Accordion title="Suppression isn't working in my CI/CD pipeline">
+  Ensure:
+  1. CommentSense NuGet package is restored
+  2. You're using a compatible SDK version
+  3. The build has analyzer support enabled (it's on by default in modern SDKs)
+  
+  Check build output for analyzer warnings.
+</Accordion>
+
+## Summary
+
+CommentSense's suppression system:
+
+- **Eliminates duplicate warnings** from the C# compiler
+- **Provides better diagnostics** with more context and code fixes
+- **Offers flexible configuration** via global or conditional suppression
+- **Integrates seamlessly** with existing projects without manual `NoWarn` entries
+
+See also:
+- [Configuration Guide](/configuration) for `.editorconfig` options
+- [Rules Reference](/rules) for CommentSense diagnostic details

@@ -1,0 +1,388 @@
+---
+title: Exception Documentation Rules
+description: Rules for documenting exceptions thrown by methods
+---
+
+These rules ensure that exceptions thrown by methods are properly documented.
+
+## CSENSE012 - Missing Exception Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (generates `<exception>` placeholder, offers rename if similar exception found)
+
+### Description
+
+Scans the method body for explicitly thrown exceptions (including static guard clauses like `ArgumentNullException.ThrowIfNull`) and ensures they are documented with `<exception>` tags.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE012">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes a value.</summary>
+    /// <param name="value">The value to process.</param>
+    public void Process(string value) // CSENSE012
+    {
+        if (value == null)
+            throw new ArgumentNullException(nameof(value));
+    }
+
+    /// <summary>Gets a value.</summary>
+    /// <value>The current value.</value>
+    public string Value // CSENSE012
+    {
+        get => _value ?? throw new InvalidOperationException("Value not set");
+    }
+
+    private string? _value;
+
+    /// <summary>Validates input.</summary>
+    /// <param name="count">The count value.</param>
+    public void Validate(int count) // CSENSE012 (multiple exceptions)
+    {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        if (count == 0)
+            throw new InvalidOperationException("Count cannot be zero");
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes a value.</summary>
+    /// <param name="value">The value to process.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
+    public void Process(string value)
+    {
+        if (value == null)
+            throw new ArgumentNullException(nameof(value));
+    }
+
+    /// <summary>Gets a value.</summary>
+    /// <value>The current value.</value>
+    /// <exception cref="InvalidOperationException">Thrown when the value has not been set.</exception>
+    public string Value
+    {
+        get => _value ?? throw new InvalidOperationException("Value not set");
+    }
+
+    private string? _value;
+
+    /// <summary>Validates input.</summary>
+    /// <param name="count">The count value.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is negative.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <paramref name="count"/> is zero.</exception>
+    public void Validate(int count)
+    {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        if (count == 0)
+            throw new InvalidOperationException("Count cannot be zero");
+    }
+}
+```
+</Accordion>
+
+### Special cases
+
+<Accordion title="Caught exceptions">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes data safely.</summary>
+    public void ProcessSafely() // No CSENSE012 - exception is caught
+    {
+        try
+        {
+            throw new InvalidOperationException();
+        }
+        catch (InvalidOperationException)
+        {
+            // Exception is swallowed
+        }
+    }
+
+    /// <summary>Processes with filter.</summary>
+    public void ProcessWithFilter() // CSENSE012 - filtered catch may not catch
+    {
+        try
+        {
+            throw new ArgumentNullException();
+        }
+        catch (ArgumentNullException) when (false)
+        {
+            // Filter means exception might escape
+        }
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Rethrown exceptions">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Handles errors.</summary>
+    /// <exception cref="ArgumentException">Rethrown from inner processing.</exception>
+    public void HandleErrors()
+    {
+        try
+        {
+            // Some code
+        }
+        catch (ArgumentException)
+        {
+            throw; // Rethrow requires documentation
+        }
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Base class exceptions">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Validates input.</summary>
+    /// <param name="value">The value.</param>
+    /// <exception cref="ArgumentException">Thrown when validation fails.</exception>
+    public void Validate(string value) // No CSENSE012 - base exception documents derived
+    {
+        if (value == null)
+            throw new ArgumentNullException(nameof(value)); // ArgumentNullException : ArgumentException
+    }
+}
+```
+
+<Warning>
+Documenting a base exception type (e.g., `ArgumentException`) satisfies derived exceptions (e.g., `ArgumentNullException`). However, documenting a derived exception does NOT satisfy base exceptions.
+</Warning>
+</Accordion>
+
+<Accordion title="Exceptions in local functions and lambdas">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes values.</summary>
+    public void ProcessValues() // No CSENSE012 - exceptions in local functions/lambdas are ignored
+    {
+        void LocalFunction()
+        {
+            throw new InvalidOperationException();
+        }
+
+        Action lambda = () => throw new ArgumentException();
+    }
+}
+```
+</Accordion>
+
+### Configuration
+
+<Accordion title="Ignore specific exceptions">
+```ini
+[*.cs]
+# Comma-separated list of exception types (by name or full name)
+comment_sense.ignored_exceptions = ArgumentNullException, ArgumentOutOfRangeException
+```
+</Accordion>
+
+<Accordion title="Ignore all System exceptions">
+```ini
+[*.cs]
+# Whether to ignore all exceptions in the System namespace (default: false)
+comment_sense.ignore_system_exceptions = true
+```
+</Accordion>
+
+<Accordion title="Ignore exceptions by namespace">
+```ini
+[*.cs]
+# Comma-separated list of namespaces. Exceptions in these namespaces (or sub-namespaces) will be ignored.
+comment_sense.ignored_exception_namespaces = MyProject.Internal, System.Data
+```
+</Accordion>
+
+<Accordion title="Scan called methods for exceptions">
+```ini
+[*.cs]
+# Whether to scan called methods and constructors for their documented exceptions (default: false).
+# When enabled, CSENSE012 will also report exceptions documented in the XML comments of called members.
+comment_sense.scan_called_methods_for_exceptions = true
+```
+
+<Warning>
+Enabling `scan_called_methods_for_exceptions` can significantly increase the number of reported exceptions, as it analyzes the documentation of all called methods.
+</Warning>
+</Accordion>
+
+<Accordion title="Fuzzy match threshold for rename suggestions">
+```ini
+[*.cs]
+# Threshold (0.0 to 1.0) for fuzzy-match renaming of misspelled exception tags.
+# Setting this to 0.0 disables rename suggestions.
+# Recommended: 0.5 to 0.7
+# Default: 0.5
+comment_sense.rename_similarity_threshold = 0.5
+```
+</Accordion>
+
+---
+
+## CSENSE017 - Invalid Exception Type
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** No
+
+### Description
+
+Validates that the `cref` attribute in an `<exception>` tag refers to a valid Exception type.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE017">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes data.</summary>
+    /// <exception cref="String">Not an exception type.</exception> // CSENSE017
+    public void Process()
+    {
+        throw new InvalidOperationException();
+    }
+
+    /// <summary>Validates input.</summary>
+    /// <exception cref="MyClass">Not an exception type.</exception> // CSENSE017
+    public void Validate()
+    {
+        throw new ArgumentException();
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+using System;
+
+/// <summary>A custom exception.</summary>
+public class MyCustomException : Exception
+{
+}
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes data.</summary>
+    /// <exception cref="InvalidOperationException">Thrown when processing fails.</exception>
+    public void Process()
+    {
+        throw new InvalidOperationException();
+    }
+
+    /// <summary>Validates input.</summary>
+    /// <exception cref="MyCustomException">Thrown when validation fails.</exception>
+    public void Validate()
+    {
+        throw new MyCustomException();
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE023 - Stray Exception Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes stray tags)
+
+### Description
+
+Flags `<exception>` tags that are nested within other tags or duplicated for the same exception type.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE023">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>
+    /// <exception cref="InvalidOperationException">Nested exception.</exception> // CSENSE023
+    /// </summary>
+    public void Method1()
+    {
+    }
+
+    /// <exception cref="ArgumentNullException">First description.</exception>
+    /// <exception cref="ArgumentNullException">Second description.</exception> // CSENSE023
+    public void Method2()
+    {
+    }
+
+    /// <exception cref="ArgumentException">First.</exception>
+    /// <exception cref="T:System.ArgumentException">Second.</exception> // CSENSE023 - same type, different cref format
+    public void Method3()
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+using System;
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes data.</summary>
+    /// <exception cref="InvalidOperationException">Thrown when processing fails.</exception>
+    public void Method1()
+    {
+    }
+
+    /// <exception cref="ArgumentNullException">Thrown when the argument is null.</exception>
+    public void Method2()
+    {
+    }
+
+    /// <exception cref="ArgumentException">Thrown when the argument is invalid.</exception>
+    public void Method3()
+    {
+    }
+}
+```
+</Accordion>

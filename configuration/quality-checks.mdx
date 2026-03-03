@@ -1,0 +1,375 @@
+---
+title: Quality Check Configuration
+description: Configure low quality documentation detection, langword enforcement, ghost references, and tag ordering
+---
+
+CommentSense provides several quality checks to ensure your documentation is clear, consistent, and professional. These checks can be customized to match your team's documentation standards.
+
+## Low Quality Documentation Detection
+
+Configure what CommentSense considers "low quality" documentation (diagnostic **CSENSE016**).
+
+### Low Quality Terms
+
+<ParamField path="comment_sense.low_quality_terms" type="string" default="(empty)">
+  Comma-separated list of terms that indicate incomplete or placeholder documentation. Values are case-insensitive.
+  
+  When any of these terms appear in documentation content, CSENSE016 is triggered.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+comment_sense.low_quality_terms = TODO, TBD, FixMe, None, N/A, Coming Soon
+```
+
+**Triggered examples:**
+
+```csharp
+/// <summary>
+/// TODO: Add description
+/// </summary>
+public void Process() { }
+
+/// <summary>
+/// Implementation: TBD
+/// </summary>
+public void Calculate() { }
+```
+
+### Minimum Summary Length
+
+<ParamField path="comment_sense.min_summary_length" type="integer" default="0">
+  Minimum length (in characters) for summary text, excluding trailing punctuation and whitespace.
+  
+  Set to `0` (default) to disable length checking.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Require at least 15 characters in summaries
+comment_sense.min_summary_length = 15
+```
+
+**Example behavior:**
+
+```csharp
+/// <summary>
+/// Processes data.  // Only 14 characters - CSENSE016 triggered
+/// </summary>
+public void Process() { }
+
+/// <summary>
+/// Processes all pending data.  // 24 characters - OK
+/// </summary>
+public void ProcessAll() { }
+```
+
+### Ending Punctuation
+
+<ParamField path="comment_sense.require_ending_punctuation" type="boolean" default="false">
+  Requires documentation to end with punctuation (`.`, `!`, or `?`).
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+comment_sense.require_ending_punctuation = true
+```
+
+**Example behavior:**
+
+```csharp
+/// <summary>
+/// Processes the data  // CSENSE016 triggered - missing punctuation
+/// </summary>
+public void Process() { }
+
+/// <summary>
+/// Processes the data.  // OK - ends with period
+/// </summary>
+public void ProcessCorrect() { }
+```
+
+<Note>
+CommentSense provides an automatic code fix to add missing ending punctuation.
+</Note>
+
+### Capitalization
+
+<ParamField path="comment_sense.require_capitalization" type="boolean" default="false">
+  Requires documentation to start with a capital letter (if it starts with a letter).
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+comment_sense.require_capitalization = true
+```
+
+**Example behavior:**
+
+```csharp
+/// <summary>
+/// processes the data.  // CSENSE016 triggered - starts with lowercase
+/// </summary>
+public void Process() { }
+
+/// <summary>
+/// Processes the data.  // OK - starts with capital
+/// </summary>
+public void ProcessCorrect() { }
+```
+
+<Note>
+CommentSense provides an automatic code fix to correct capitalization.
+</Note>
+
+### Similarity Threshold
+
+<ParamField path="comment_sense.similarity_threshold" type="double" default="0.0">
+  Threshold (0.0 to 1.0) for detecting documentation that is too similar to the member name.
+  
+  - `0.0` (default) - Disables similarity analysis
+  - `1.0` - Only flags documentation identical to the symbol name
+  - `0.7` to `0.8` - Recommended range for catching lazy documentation
+  
+  Values are clamped to the range [0.0, 1.0].
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Flag documentation that's 80% similar to the member name
+comment_sense.similarity_threshold = 0.8
+```
+
+**Example behavior:**
+
+```csharp
+/// <summary>
+/// ProcessData  // Very similar to method name - CSENSE016 triggered
+/// </summary>
+public void ProcessData() { }
+
+/// <summary>
+/// Processes the incoming data and stores results.  // OK - sufficiently different
+/// </summary>
+public void ProcessDataCorrect() { }
+```
+
+### Rename Similarity Threshold
+
+<ParamField path="comment_sense.rename_similarity_threshold" type="double" default="0.5">
+  Threshold (0.0 to 1.0) for fuzzy-matching when suggesting renames of stray documentation tags.
+  
+  - `0.0` - Disables rename suggestions
+  - `0.5` (default) - Moderate matching
+  - `0.7` to `0.8` - Stricter matching
+  
+  Values are clamped to the range [0.0, 1.0].
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Be more conservative with rename suggestions
+comment_sense.rename_similarity_threshold = 0.7
+```
+
+**Example behavior:**
+
+```csharp
+/// <param name="usreName">The username</param>  // Typo: usreName
+public void Login(string userName) { }  // Actual: userName
+
+// With threshold 0.7, CommentSense suggests renaming "usreName" to "userName"
+```
+
+## Langword Enforcement
+
+Configure keyword formatting (diagnostic **CSENSE019**).
+
+<ParamField path="comment_sense.langwords" type="string" default="true, false, null, void">
+  Comma-separated list of C# keywords that should be wrapped in `<see langword="..." />` tags. Values are case-insensitive.
+  
+  **Note:** Specifying this option **replaces** the default list entirely.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Add async and await to the default keywords
+comment_sense.langwords = true, false, null, void, async, await
+```
+
+**Example behavior:**
+
+```csharp
+/// <summary>
+/// Returns null if not found.  // CSENSE019 triggered - "null" should use langword
+/// </summary>
+public string Find() { }
+
+/// <summary>
+/// Returns <see langword="null" /> if not found.  // OK - uses langword tag
+/// </summary>
+public string FindCorrect() { }
+```
+
+<Note>
+CommentSense provides an automatic code fix to wrap keywords in `<see langword="..." />` tags. This fix supports **Fix All** in document, project, or solution.
+</Note>
+
+## Ghost Reference Detection
+
+Configure detection of parameter names in documentation that aren't wrapped in `<paramref />` or `<typeparamref />` tags (diagnostics **CSENSE020** and **CSENSE021**).
+
+<ParamField path="comment_sense.ghost_references.mode" type="enum" default="safe">
+  Controls how strictly to detect parameter/type parameter names in documentation text.
+  
+  **Valid values:**
+  - `safe` - Only flags complex names (camelCase, PascalCase, underscores, digits). Ignores simple lowercase words (default)
+  - `strict` - Flags all matching parameter names regardless of casing or length
+  - `off` - Disables ghost reference detection entirely
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Use strict mode to catch all parameter references
+comment_sense.ghost_references.mode = strict
+```
+
+### Safe Mode (Default)
+
+```csharp
+/// <summary>
+/// Processes the userData and returns result.  // CSENSE020 triggered - "userData" is camelCase
+/// </summary>
+public void Process(string userData) { }
+
+/// <summary>
+/// Processes the user and returns result.  // Not triggered - "user" is simple lowercase
+/// </summary>
+public void ProcessUser(string user) { }
+```
+
+### Strict Mode
+
+```csharp
+/// <summary>
+/// Processes the user and returns result.  // CSENSE020 triggered - "user" matches parameter
+/// </summary>
+public void Process(string user) { }
+
+/// <summary>
+/// Processes the <paramref name="user" /> and returns result.  // OK - uses paramref
+/// </summary>
+public void ProcessCorrect(string user) { }
+```
+
+### Off Mode
+
+```ini
+[*.cs]
+# Disable ghost reference detection
+comment_sense.ghost_references.mode = off
+```
+
+<Info>
+**Safe mode** is recommended for most projects as it avoids false positives on common English words while catching obvious parameter references.
+</Info>
+
+## Tag Order Enforcement
+
+Configure the expected order of top-level XML documentation tags (diagnostic **CSENSE024**).
+
+<ParamField path="comment_sense.tag_order" type="string" default="inheritdoc, summary, typeparam, param, returns, value, exception, remarks, example, seealso, permission">
+  Comma-separated list of tag names in their desired order. Tags not listed will have the lowest priority.
+  
+  **Special behavior:** If `returns` is present but `value` is not (or vice versa), they are given the same priority.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Simplified tag order focusing on common tags
+comment_sense.tag_order = inheritdoc, summary, param, returns, exception, remarks
+```
+
+**Example behavior:**
+
+```csharp
+/// <exception cref="ArgumentException">Invalid argument</exception>  // Wrong order
+/// <summary>
+/// Processes the data.
+/// </summary>
+/// <param name="data">The data</param>
+public void Process(string data) { }
+
+// CSENSE024 triggered - <exception> should come after <param>
+```
+
+**Correct order:**
+
+```csharp
+/// <summary>
+/// Processes the data.
+/// </summary>
+/// <param name="data">The data</param>
+/// <exception cref="ArgumentException">Invalid argument</exception>
+public void Process(string data) { }
+```
+
+<Note>
+CommentSense provides an automatic code fix to reorder tags while preserving formatting. This fix supports **Fix All** in document, project, or solution.
+</Note>
+
+## Complete Quality Configuration Example
+
+Here's a comprehensive configuration for high-quality documentation standards:
+
+```ini
+[*.cs]
+# Low quality detection
+comment_sense.low_quality_terms = TODO, TBD, FixMe, None, N/A, Coming Soon
+comment_sense.min_summary_length = 15
+comment_sense.require_ending_punctuation = true
+comment_sense.require_capitalization = true
+comment_sense.similarity_threshold = 0.8
+comment_sense.rename_similarity_threshold = 0.6
+
+# Langword enforcement
+comment_sense.langwords = true, false, null, void, async, await
+
+# Ghost reference detection
+comment_sense.ghost_references.mode = safe
+
+# Tag ordering
+comment_sense.tag_order = inheritdoc, summary, typeparam, param, returns, value, exception, remarks, example
+```
+
+## Related Rules
+
+- **CSENSE016** - Low quality documentation detection
+- **CSENSE019** - Langword enforcement
+- **CSENSE020** - Missing `<paramref />` for parameter names
+- **CSENSE021** - Missing `<typeparamref />` for type parameter names
+- **CSENSE024** - Tag order enforcement
+
+## See Also
+
+- [Visibility Levels](/configuration/visibility-levels) - Configure which members are analyzed
+- [Exception Documentation](/configuration/exceptions) - Configure exception documentation requirements
+- [Advanced Configuration](/configuration/advanced) - Additional configuration options

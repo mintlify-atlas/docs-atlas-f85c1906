@@ -1,0 +1,541 @@
+---
+title: Troubleshooting
+description: Common issues and solutions when using CommentSense
+---
+
+This guide covers common problems you might encounter when using CommentSense and how to resolve them.
+
+## Installation and Setup Issues
+
+<AccordionGroup>
+  <Accordion title="CommentSense diagnostics are not appearing">
+    **Symptoms**: No CSENSE diagnostics show up in the Error List or in the IDE.
+    
+    **Possible Causes**:
+    1. CommentSense is not installed
+    2. XML documentation generation is disabled
+    3. The analyzer is disabled in project settings
+    4. IDE analyzer support is turned off
+    
+    **Solutions**:
+    
+    <Steps>
+      <Step title="Verify Installation">
+        Check that the CommentSense NuGet package is installed:
+        
+        ```bash
+        dotnet list package | grep CommentSense
+        ```
+        
+        If not installed, add it:
+        
+        ```bash
+        dotnet add package CommentSense.Analyzers
+        ```
+      </Step>
+      
+      <Step title="Enable XML Documentation">
+        CommentSense requires XML documentation generation. Add to your `.csproj`:
+        
+        ```xml
+        <PropertyGroup>
+          <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        </PropertyGroup>
+        ```
+        
+        Without this, **CSENSE000** will appear warning you that documentation parsing is disabled.
+      </Step>
+      
+      <Step title="Check Analyzer Settings">
+        Ensure analyzers are not disabled:
+        
+        ```xml
+        <PropertyGroup>
+          <!-- Should NOT be set to false -->
+          <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+          <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
+        </PropertyGroup>
+        ```
+      </Step>
+      
+      <Step title="Restart IDE">
+        Sometimes the IDE needs a restart to load new analyzers:
+        
+        - Visual Studio: Close and reopen the solution
+        - VS Code: Reload window (Ctrl+Shift+P → "Reload Window")
+      </Step>
+    </Steps>
+  </Accordion>
+  
+  <Accordion title="CSENSE000: XML documentation parsing is disabled">
+    **Symptom**: You see this warning at the project level.
+    
+    **Cause**: Your project doesn't have `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the `.csproj`.
+    
+    **Solution**:
+    
+    Add the required property to your project file:
+    
+    ```xml
+    <PropertyGroup>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+    ```
+    
+    Or enable it for all projects in a `Directory.Build.props` file:
+    
+    ```xml
+    <Project>
+      <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      </PropertyGroup>
+    </Project>
+    ```
+  </Accordion>
+  
+  <Accordion title="I still see CS1591 compiler warnings">
+    **Symptom**: Both CommentSense diagnostics (CSENSE001) and compiler warnings (CS1591) appear.
+    
+    **Cause**: The suppressor is not running, or you have manual `<NoWarn>` entries.
+    
+    **Solution**:
+    
+    1. **Remove manual suppressions** from `.csproj`:
+       
+       ```xml
+       <!-- REMOVE THIS -->
+       <PropertyGroup>
+         <NoWarn>CS1591</NoWarn>
+       </PropertyGroup>
+       ```
+    
+    2. **Verify the suppressor is loaded**:
+       
+       The `CommentSenseSuppressor` should automatically suppress CS1591, CS1573, etc. Check that:
+       - CommentSense is properly installed
+       - Your SDK version supports `DiagnosticSuppressor` (requires .NET 5+ SDK or Visual Studio 2019 16.9+)
+    
+    3. **Check conditional suppression settings**:
+       
+       If you have `comment_sense.enable_conditional_suppression = true`, some warnings may intentionally show for excluded members.
+  </Accordion>
+</AccordionGroup>
+
+## Configuration Issues
+
+<AccordionGroup>
+  <Accordion title="My .editorconfig settings are not being applied">
+    **Symptoms**: Configuration changes in `.editorconfig` don't affect CommentSense behavior.
+    
+    **Solutions**:
+    
+    <Steps>
+      <Step title="Check File Location">
+        Ensure `.editorconfig` is in the project root or a parent directory.
+      </Step>
+      
+      <Step title="Verify Syntax">
+        Check for typos in option names:
+        
+        ```ini
+        [*.cs]
+        # Correct
+        comment_sense.visibility_level = protected
+        
+        # Incorrect (typo)
+        commentsense.visibility_level = protected
+        ```
+      </Step>
+      
+      <Step title="Check Section Matching">
+        Ensure the section header matches your files:
+        
+        ```ini
+        # Matches all .cs files
+        [*.cs]
+        comment_sense.visibility_level = public
+        
+        # Matches only files in src/Api directory
+        [src/Api/**/*.cs]
+        comment_sense.visibility_level = public
+        ```
+      </Step>
+      
+      <Step title="Rebuild Solution">
+        After changing `.editorconfig`, rebuild:
+        
+        ```bash
+        dotnet clean
+        dotnet build
+        ```
+      </Step>
+      
+      <Step title="Restart IDE">
+        Some IDEs cache configuration. Restart to reload.
+      </Step>
+    </Steps>
+  </Accordion>
+  
+  <Accordion title="How do I disable a specific rule?">
+    **Use `.editorconfig` or `.globalconfig` to set severity:**
+    
+    ```ini
+    [*.cs]
+    # Disable CSENSE016 (low quality documentation)
+    dotnet_diagnostic.CSENSE016.severity = none
+    
+    # Make CSENSE014 (missing value tag) a suggestion instead of warning
+    dotnet_diagnostic.CSENSE014.severity = suggestion
+    
+    # Promote CSENSE001 (missing documentation) to error
+    dotnet_diagnostic.CSENSE001.severity = error
+    ```
+    
+    Available severities: `none`, `silent`, `suggestion`, `warning`, `error`
+  </Accordion>
+  
+  <Accordion title="Configuration works locally but not in CI">
+    **Possible Causes**:
+    1. `.editorconfig` not committed to source control
+    2. CI environment uses different SDK version
+    3. Build script overrides settings
+    
+    **Solutions**:
+    
+    - Commit `.editorconfig` to git:
+      ```bash
+      git add .editorconfig
+      git commit -m "Add CommentSense configuration"
+      ```
+    
+    - Verify SDK version in CI matches local:
+      ```bash
+      dotnet --version
+      ```
+    
+    - Check for `<NoWarn>` or `<TreatWarningsAsErrors>` in CI-specific props files
+  </Accordion>
+</AccordionGroup>
+
+## Code Fix Issues
+
+<AccordionGroup>
+  <Accordion title="Code fixes are not appearing">
+    **Symptoms**: The lightbulb doesn't show up, or it shows but has no CommentSense fixes.
+    
+    **Solutions**:
+    
+    1. **Check diagnostic severity**: Code fixes only appear for diagnostics with `warning` or `error` severity (not `suggestion` or `none`).
+    
+    2. **Verify cursor position**: Place the cursor directly on the diagnostic (usually the member name).
+    
+    3. **Use the keyboard shortcut**: Press **Ctrl + .** (or **Alt + Enter** in some IDEs) to explicitly invoke the code fix menu.
+    
+    4. **Restart the IDE**: Sometimes the code fix provider needs a reload.
+  </Accordion>
+  
+  <Accordion title="Fix All is not working as expected">
+    **Symptoms**: Fix All applies some fixes but not others, or produces unexpected results.
+    
+    **Causes & Solutions**:
+    
+    1. **Multiple diagnostics on the same member**:
+       
+       CommentSense groups diagnostics by member and applies them together. If fixes conflict, some may not apply.
+       
+       **Solution**: Apply fixes one at a time, or review the Fix All preview.
+    
+    2. **Fix All scope**:
+       
+       Ensure you're using the right scope:
+       - **Fix All in Document**: Current file only
+       - **Fix All in Project**: All files in current project
+       - **Fix All in Solution**: All projects
+       
+       Select the scope in the Fix All dialog.
+    
+    3. **Files with syntax errors**:
+       
+       Fix All skips files with compilation errors.
+       
+       **Solution**: Fix syntax errors first, then run Fix All.
+  </Accordion>
+  
+  <Accordion title="Fix generates invalid XML or breaks formatting">
+    **Symptoms**: After applying a code fix, the documentation has syntax errors or is incorrectly formatted.
+    
+    **This should be rare**. If it happens:
+    
+    1. **Report a bug**: Include the original code and the fix result
+    2. **Workaround**: Undo the fix (Ctrl+Z) and apply manually
+    3. **Check for mixed comment styles**: Ensure you're using either `///` (single-line) or `/** */` (multi-line), not both
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="IDE is slow with CommentSense enabled">
+    **Symptoms**: Visual Studio or other IDE becomes sluggish when editing code.
+    
+    **Solutions**:
+    
+    1. **Disable live analysis for large files**:
+       
+       In Visual Studio: **Tools → Options → Text Editor → C# → Advanced → Enable full solution analysis** → Uncheck
+    
+    2. **Reduce visibility level**:
+       
+       Analyze fewer members:
+       
+       ```ini
+       [*.cs]
+       # Only analyze public members (fewer diagnostics)
+       comment_sense.visibility_level = public
+       ```
+    
+    3. **Exclude member types**:
+       
+       ```ini
+       [*.cs]
+       comment_sense.exclude_constants = true
+       comment_sense.exclude_enums = true
+       ```
+    
+    4. **Disable expensive rules**:
+       
+       ```ini
+       [*.cs]
+       # Disable similarity analysis (can be slow on large files)
+       comment_sense.similarity_threshold = 0.0
+       
+       # Disable deep exception scanning
+       comment_sense.scan_called_methods_for_exceptions = false
+       ```
+  </Accordion>
+  
+  <Accordion title="Build is slow in CI/CD">
+    **Symptoms**: Build times increase significantly with CommentSense.
+    
+    **Solutions**:
+    
+    1. **Use incremental builds**:
+       
+       ```bash
+       dotnet build --no-incremental false
+       ```
+    
+    2. **Run analyzers only on changed files** (advanced):
+       
+       Use build caching and only analyze modified files.
+    
+    3. **Disable analyzers in Debug builds**:
+       
+       ```xml
+       <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+         <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+       </PropertyGroup>
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Diagnostic Interpretation
+
+<AccordionGroup>
+  <Accordion title="CSENSE016: What makes documentation 'low quality'?">
+    **CSENSE016** flags documentation based on several criteria:
+    
+    1. **Empty or whitespace-only content**
+    2. **Forbidden terms** (default: none, configurable)
+    3. **Too short** (default: no minimum, configurable)
+    4. **Missing capitalization** (if `require_capitalization = true`)
+    5. **Missing ending punctuation** (if `require_ending_punctuation = true`)
+    6. **Too similar to member name** (if `similarity_threshold > 0`)
+    
+    **Configuration**:
+    
+    ```ini
+    [*.cs]
+    comment_sense.low_quality_terms = TODO, TBD, FixMe
+    comment_sense.min_summary_length = 10
+    comment_sense.require_capitalization = true
+    comment_sense.require_ending_punctuation = true
+    comment_sense.similarity_threshold = 0.75
+    ```
+  </Accordion>
+  
+  <Accordion title="CSENSE012: Why is my exception not detected?">
+    **CSENSE012** scans method bodies for explicitly thrown exceptions.
+    
+    **Common reasons an exception might not be detected**:
+    
+    1. **Exception is ignored by configuration**:
+       
+       ```ini
+       [*.cs]
+       comment_sense.ignored_exceptions = ArgumentNullException
+       comment_sense.ignore_system_exceptions = true
+       ```
+    
+    2. **Exception is thrown in a called method**:
+       
+       By default, CommentSense only scans the current method. Enable deep scanning:
+       
+       ```ini
+       [*.cs]
+       comment_sense.scan_called_methods_for_exceptions = true
+       ```
+    
+    3. **Exception is thrown indirectly** (e.g., via delegates, LINQ, reflection):
+       
+       CommentSense cannot detect all indirect throws. Document these manually.
+  </Accordion>
+  
+  <Accordion title="CSENSE025: Accessibility mismatch on cref">
+    **Symptom**: Warning that a `cref` points to a symbol with lower accessibility.
+    
+    **Example**:
+    
+    ```csharp
+    /// <summary>
+    /// Uses <see cref="InternalHelper" /> for processing.
+    /// </summary>
+    public void Process() { }
+    
+    internal static class InternalHelper { }
+    ```
+    
+    **Cause**: Public members should not reference internal/private symbols in their public documentation.
+    
+    **Solutions**:
+    
+    1. **Change the reference** to a public type
+    2. **Remove the reference** if it's not essential
+    3. **Suppress the warning** if the reference is intentional:
+       
+       ```csharp
+       #pragma warning disable CSENSE025
+       /// <summary>
+       /// Uses <see cref="InternalHelper" /> for processing.
+       /// </summary>
+       #pragma warning restore CSENSE025
+       public void Process() { }
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Compatibility Issues
+
+<AccordionGroup>
+  <Accordion title="What .NET SDK versions are supported?">
+    CommentSense requires:
+    
+    - **.NET 5 SDK or later** (for `DiagnosticSuppressor` support)
+    - **C# 9.0 or later**
+    
+    If you're using an older SDK:
+    
+    1. Upgrade to .NET 5+ SDK
+    2. You can still target older frameworks (e.g., `<TargetFramework>net48</TargetFramework>`)
+  </Accordion>
+  
+  <Accordion title="Does CommentSense work with .NET Framework projects?">
+    **Yes**, as long as you're using a modern SDK (.NET 5+ SDK).
+    
+    You can target .NET Framework while using the new SDK:
+    
+    ```xml
+    <PropertyGroup>
+      <TargetFramework>net48</TargetFramework>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+    ```
+  </Accordion>
+  
+  <Accordion title="Does CommentSense work in Rider, VS Code, or other IDEs?">
+    **Yes**, CommentSense is a Roslyn analyzer and works in any IDE that supports Roslyn:
+    
+    - **Visual Studio 2019/2022**: Full support
+    - **JetBrains Rider**: Full support
+    - **VS Code with C# extension**: Full support
+    - **Command line (dotnet build)**: Full support
+    
+    Code fixes and Fix All are also supported in all these environments.
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Check the Rules Reference" icon="book" href="/rules/overview">
+    See detailed descriptions of all CSENSE diagnostics.
+  </Card>
+  
+  <Card title="Review Configuration Options" icon="gear" href="/configuration/overview">
+    Explore all available `.editorconfig` settings.
+  </Card>
+  
+  <Card title="Read Best Practices" icon="star" href="/guides/best-practices">
+    Learn recommended patterns for XML documentation.
+  </Card>
+  
+  <Card title="Report an Issue" icon="bug">
+    If you've found a bug, report it on the GitHub repository.
+  </Card>
+</CardGroup>
+
+## Diagnostic Checklist
+
+If you're experiencing issues, run through this checklist:
+
+<Steps>
+  <Step title="Installation">
+    - [ ] CommentSense NuGet package is installed
+    - [ ] `<GenerateDocumentationFile>true</GenerateDocumentationFile>` is in `.csproj`
+    - [ ] Solution builds without errors
+  </Step>
+  
+  <Step title="Configuration">
+    - [ ] `.editorconfig` exists and is committed to source control
+    - [ ] `.editorconfig` syntax is correct (no typos)
+    - [ ] Configuration options match expected behavior
+  </Step>
+  
+  <Step title="IDE">
+    - [ ] IDE supports Roslyn analyzers
+    - [ ] Analyzers are enabled in IDE settings
+    - [ ] IDE has been restarted after installing CommentSense
+  </Step>
+  
+  <Step title="Diagnostics">
+    - [ ] Diagnostics appear in Error List
+    - [ ] Diagnostic severity is set correctly (warning/error, not none)
+    - [ ] Suppressed compiler warnings (CS1591, etc.) are hidden
+  </Step>
+  
+  <Step title="Code Fixes">
+    - [ ] Lightbulb appears on diagnostics
+    - [ ] Code fixes are available in the menu
+    - [ ] Fix All works as expected
+  </Step>
+</Steps>
+
+## Still Having Issues?
+
+If you've tried everything and still have problems:
+
+1. **Collect diagnostic information**:
+   - CommentSense version
+   - .NET SDK version (`dotnet --version`)
+   - IDE and version
+   - Minimal reproducible example
+
+2. **Search existing issues** on the GitHub repository
+
+3. **Open a new issue** with:
+   - Clear description of the problem
+   - Steps to reproduce
+   - Expected vs. actual behavior
+   - Diagnostic information from step 1
+
+The maintainers and community will help you resolve the issue.

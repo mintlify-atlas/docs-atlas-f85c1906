@@ -1,0 +1,455 @@
+---
+title: CSENSE006-013 - Return Value and Exception Rules
+description: Return value, exception, and documentation order validation
+---
+
+# CSENSE006-013: Return Value and Exception Rules
+
+These diagnostics ensure proper documentation of return values, exceptions, parameter ordering, and related documentation elements.
+
+## CSENSE006: Missing Return Value Documentation
+
+<ParamField query="ID" type="string" default="CSENSE006">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Publicly accessible non-void members should have a `<returns>` tag to document the return value.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Gets the user's full name.
+/// </summary>
+public string GetFullName()
+// CSENSE006: The symbol 'GetFullName' is missing return value documentation
+{
+    return $"{FirstName} {LastName}";
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Gets the user's full name.
+/// </summary>
+/// <returns>The full name as a formatted string.</returns>
+public string GetFullName()
+{
+    return $"{FirstName} {LastName}";
+}
+```
+
+---
+
+## CSENSE007: Unresolved Cref
+
+<ParamField query="ID" type="string" default="CSENSE007">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+The `cref` attribute in XML documentation must refer to a valid symbol. This diagnostic is reported when a code reference cannot be resolved to an existing type or member.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// See <see cref="NonExistentClass"/> for more details.
+/// </summary>
+// CSENSE007: The cref reference 'NonExistentClass' could not be resolved
+public void MyMethod() { }
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// See <see cref="ExistingClass"/> for more details.
+/// </summary>
+public void MyMethod() { }
+```
+
+---
+
+## CSENSE008: Parameter Order Mismatch
+
+<ParamField query="ID" type="string" default="CSENSE008">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+The order of `<param>` tags should match the order of parameters in the member signature for better readability.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Creates a new user account.
+/// </summary>
+/// <param name="email">The user's email address.</param>
+/// <param name="username">The username.</param>
+public void CreateUser(string username, string email)
+// CSENSE008: The parameter 'email' is documented out of order
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Creates a new user account.
+/// </summary>
+/// <param name="username">The username.</param>
+/// <param name="email">The user's email address.</param>
+public void CreateUser(string username, string email)
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE009: Duplicate Parameter Documentation
+
+<ParamField query="ID" type="string" default="CSENSE009">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Each parameter should only be documented once. Duplicate `<param>` tags are not allowed.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Performs a calculation.
+/// </summary>
+/// <param name="value">The input value.</param>
+/// <param name="value">The value to process.</param>
+public int Calculate(int value)
+// CSENSE009: The parameter 'value' is documented more than once
+{
+    return value * 2;
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Performs a calculation.
+/// </summary>
+/// <param name="value">The input value.</param>
+public int Calculate(int value)
+{
+    return value * 2;
+}
+```
+
+---
+
+## CSENSE010: Type Parameter Order Mismatch
+
+<ParamField query="ID" type="string" default="CSENSE010">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+The order of `<typeparam>` tags should match the order of type parameters in the member signature.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// A generic converter.
+/// </summary>
+/// <typeparam name="TOutput">The output type.</typeparam>
+/// <typeparam name="TInput">The input type.</typeparam>
+public class Converter<TInput, TOutput>
+// CSENSE010: The type parameter 'TOutput' is documented out of order
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// A generic converter.
+/// </summary>
+/// <typeparam name="TInput">The input type.</typeparam>
+/// <typeparam name="TOutput">The output type.</typeparam>
+public class Converter<TInput, TOutput>
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE011: Duplicate Type Parameter Documentation
+
+<ParamField query="ID" type="string" default="CSENSE011">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Each type parameter should only be documented once. Duplicate `<typeparam>` tags are not allowed.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// A generic collection.
+/// </summary>
+/// <typeparam name="T">The element type.</typeparam>
+/// <typeparam name="T">The type of elements.</typeparam>
+public class Collection<T>
+// CSENSE011: The type parameter 'T' is documented more than once
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// A generic collection.
+/// </summary>
+/// <typeparam name="T">The element type.</typeparam>
+public class Collection<T>
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE012: Missing Exception Documentation
+
+<ParamField query="ID" type="string" default="CSENSE012">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+All exceptions explicitly thrown by a publicly accessible member should be documented with an `<exception>` tag.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Divides two numbers.
+/// </summary>
+public decimal Divide(decimal a, decimal b)
+// CSENSE012: The exception type 'DivideByZeroException' is thrown but not documented
+{
+    if (b == 0)
+        throw new DivideByZeroException();
+    return a / b;
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Divides two numbers.
+/// </summary>
+/// <exception cref="DivideByZeroException">
+/// Thrown when <paramref name="b"/> is zero.
+/// </exception>
+public decimal Divide(decimal a, decimal b)
+{
+    if (b == 0)
+        throw new DivideByZeroException();
+    return a / b;
+}
+```
+
+### Configuration
+
+You can configure which exceptions to ignore:
+
+```ini
+# Ignore specific exception types
+comment_sense.ignored_exceptions = NotImplementedException,InvalidOperationException
+
+# Ignore all System.* exceptions
+comment_sense.ignore_system_exceptions = true
+
+# Ignore exceptions from specific namespaces
+comment_sense.ignored_exception_namespaces = MyApp.Internal
+
+# Scan called methods for exceptions (experimental)
+comment_sense.scan_called_methods_for_exceptions = false
+```
+
+---
+
+## CSENSE013: Stray Return Value Documentation
+
+<ParamField query="ID" type="string" default="CSENSE013">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should not contain `<returns>` tags for members that do not return a value, for properties/indexers, or if duplicated.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Logs a message to the console.
+/// </summary>
+/// <returns>Nothing is returned.</returns>
+public void LogMessage(string message)
+// CSENSE013: The <returns> tag for 'LogMessage' is misplaced, duplicated, or invalid
+{
+    Console.WriteLine(message);
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Logs a message to the console.
+/// </summary>
+public void LogMessage(string message)
+{
+    Console.WriteLine(message);
+}
+```
+
+## Related Rules
+
+- [CSENSE002-005](/api/diagnostics/csense002-005) - Parameter and type parameter rules
+- [CSENSE014](/api/diagnostics/csense014-025#csense014-missing-value-documentation) - Missing value documentation
+- [CSENSE017](/api/diagnostics/csense014-025#csense017-invalid-exception-type) - Invalid exception type

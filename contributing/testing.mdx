@@ -1,0 +1,353 @@
+---
+title: Testing Guidelines
+description: Learn how to write and run tests for CommentSense using the NUnit framework
+---
+
+CommentSense uses NUnit as its testing framework, along with the Roslyn analyzer testing infrastructure to validate diagnostic analyzers and code fixes.
+
+## Test Projects
+
+The test suite is organized into three projects:
+
+- **CommentSense.Analyzers.Tests** - Tests for diagnostic analyzers
+- **CommentSense.CodeFixes.Tests** - Tests for code fix providers
+- **CommentSense.TestHelpers** - Shared test utilities and base classes
+
+## Running Tests
+
+To run all tests in the solution:
+
+```bash
+dotnet test
+```
+
+To run tests for a specific project:
+
+```bash
+dotnet test tests/CommentSense.Analyzers.Tests
+```
+
+To run a specific test class or method:
+
+```bash
+dotnet test --filter "FullyQualifiedName~CommentSenseAnalyzerTests"
+```
+
+<Note>
+Ensure all tests pass before submitting a pull request. The CI pipeline will automatically run the test suite on all PRs.
+</Note>
+
+## Writing Analyzer Tests
+
+Analyzer tests verify that diagnostics are correctly reported for specific code patterns.
+
+### Test Structure
+
+All analyzer tests inherit from `CommentSenseAnalyzerTestBase<TAnalyzer>`:
+
+```csharp
+using CommentSense.TestHelpers;
+using NUnit.Framework;
+
+namespace CommentSense.Analyzers.Tests;
+
+public class MyAnalyzerTests : CommentSenseAnalyzerTestBase<CommentSenseAnalyzer>
+{
+    [Test]
+    public async Task TestName()
+    {
+        const string testCode = """
+            // Your test code here
+            """;
+
+        await VerifyCSenseAsync(testCode);
+    }
+}
+```
+
+### Diagnostic Markers
+
+Use `{|CSENSE001:identifier|}` syntax to mark expected diagnostic locations:
+
+```csharp
+[Test]
+public async Task PublicClassWithoutDocumentationReportsDiagnostic()
+{
+    const string testCode = """
+        public class {|CSENSE001:MyClass|}
+        {
+        }
+        """;
+
+    await VerifyCSenseAsync(testCode);
+}
+```
+
+### Multiple Diagnostics
+
+Mark multiple expected diagnostics in the same code:
+
+```csharp
+[Test]
+public async Task MultipleMissingDocumentationIssues()
+{
+    const string testCode = """
+        public class {|CSENSE001:MyClass|}
+        {
+            public void {|CSENSE001:MyMethod|}() { }
+            public int {|CSENSE001:MyField|};
+        }
+        """;
+
+    await VerifyCSenseAsync(testCode);
+}
+```
+
+### Numbered Markers
+
+Use numbered markers (`{|#0:|}`) for precise diagnostic assertions:
+
+```csharp
+[Test]
+public async Task ConstructorWithFriendlyName()
+{
+    const string testCode = """
+        /// <summary>My class</summary>
+        public class MyClass
+        {
+            public {|#0:MyClass|}(int x) { }
+        }
+        """;
+
+    var expected = new DiagnosticResult(CommentSenseRules.MissingDocumentationRule)
+        .WithLocation(0)
+        .WithArguments("MyClass(int)");
+
+    await VerifyCSenseAsync(testCode, expectedDiagnostics: [expected]);
+}
+```
+
+### Configuration Options
+
+Test analyzer behavior with different configuration options:
+
+```csharp
+[Test]
+public async Task TestWithConfiguration()
+{
+    const string testCode = """...
+        """;
+
+    var config = new Dictionary<string, string>
+    {
+        ["comment_sense.visibility_level"] = "public",
+        ["comment_sense.exclude_constants"] = "true"
+    };
+
+    await VerifyCSenseAsync(testCode, configOptions: config);
+}
+```
+
+### No Diagnostic Expected
+
+Test that no diagnostic is reported:
+
+```csharp
+[Test]
+public async Task DocumentedClassProducesNoDiagnostic()
+{
+    const string testCode = """
+        /// <summary>This is documented.</summary>
+        public class MyClass { }
+        """;
+
+    await VerifyCSenseAsync(testCode, expectDiagnostic: false);
+}
+```
+
+## Writing Code Fix Tests
+
+Code fix tests verify that code fixes correctly transform source code.
+
+### Test Structure
+
+Code fix tests inherit from `CommentSenseCodeFixTestBase<TAnalyzer, TCodeFix>`:
+
+```csharp
+using CommentSense.TestHelpers;
+using NUnit.Framework;
+
+namespace CommentSense.CodeFixes.Tests;
+
+public class MyCodeFixTests : CommentSenseCodeFixTestBase<CommentSenseAnalyzer, MyCodeFixProvider>
+{
+    [Test]
+    public async Task TestCodeFix()
+    {
+        const string testCode = """
+            // Code before fix
+            """;
+
+        const string fixedCode = """
+            // Code after fix
+            """;
+
+        await VerifyCSenseCodeFixAsync(testCode, fixedCode);
+    }
+}
+```
+
+### Example Code Fix Test
+
+```csharp
+[Test]
+public async Task AddsMissingSummaryTag()
+{
+    const string testCode = """
+        public class {|CSENSE001:MyClass|}
+        {
+        }
+        """;
+
+    const string fixedCode = """
+        /// <summary>
+        /// 
+        /// </summary>
+        public class MyClass
+        {
+        }
+        """;
+
+    await VerifyCSenseCodeFixAsync(testCode, fixedCode);
+}
+```
+
+### Testing Fix All
+
+Verify that code fixes work correctly with "Fix All" in document, project, or solution scope:
+
+```csharp
+[Test]
+public async Task FixAllInDocument()
+{
+    const string testCode = """
+        public class {|CSENSE001:Class1|} { }
+        public class {|CSENSE001:Class2|} { }
+        """;
+
+    const string fixedCode = """
+        /// <summary>
+        /// 
+        /// </summary>
+        public class Class1 { }
+        /// <summary>
+        /// 
+        /// </summary>
+        public class Class2 { }
+        """;
+
+    await VerifyCSenseCodeFixAsync(testCode, fixedCode);
+}
+```
+
+## Test Helpers
+
+The `CommentSense.TestHelpers` project provides:
+
+- **CommentSenseAnalyzerTestBase** - Base class for analyzer tests
+- **CommentSenseCodeFixTestBase** - Base class for code fix tests
+- **NUnitVerifier** - NUnit integration for Roslyn testing framework
+
+## Best Practices
+
+<Steps>
+  <Step title="Test both positive and negative cases">
+    Write tests for when diagnostics should be reported AND when they shouldn't.
+  </Step>
+  
+  <Step title="Use raw string literals">
+    Use C# raw string literals (`"""...
+    """`) for multi-line test code for better readability.
+  </Step>
+  
+  <Step title="Test edge cases">
+    Include tests for edge cases, special characters, and unusual code patterns.
+  </Step>
+  
+  <Step title="Test configuration options">
+    Verify that all configuration options work as documented.
+  </Step>
+  
+  <Step title="Keep tests focused">
+    Each test should verify one specific behavior or scenario.
+  </Step>
+</Steps>
+
+<Note>
+All new features and bug fixes must include corresponding tests. This ensures the codebase remains stable and regressions are caught early.
+</Note>
+
+## Common Test Scenarios
+
+### Testing Visibility Levels
+
+```csharp
+[Test]
+public async Task RespectsVisibilityConfiguration()
+{
+    const string testCode = """
+        public class OuterClass
+        {
+            internal class InternalClass { }
+        }
+        """;
+
+    var config = new Dictionary<string, string>
+    {
+        ["comment_sense.visibility_level"] = "internal"
+    };
+
+    // Should report diagnostic with 'internal' visibility level
+    await VerifyCSenseAsync(testCode, configOptions: config);
+}
+```
+
+### Testing Inherited Documentation
+
+```csharp
+[Test]
+public async Task AllowsImplicitInheritDoc()
+{
+    const string testCode = """
+        /// <summary>Base class</summary>
+        public class BaseClass
+        {
+            /// <summary>Base method</summary>
+            public virtual void Method() { }
+        }
+
+        /// <summary>Derived class</summary>
+        public class DerivedClass : BaseClass
+        {
+            public override void Method() { } // Should not report diagnostic
+        }
+        """;
+
+    await VerifyCSenseAsync(testCode, expectDiagnostic: false);
+}
+```
+
+### Testing Low Quality Detection
+
+```csharp
+[Test]
+public async Task DetectsLowQualityDocumentation()
+{
+    const string testCode = """
+        /// <summary>TODO</summary>
+        public class {|CSENSE016:MyClass|} { }
+        """;
+
+    await VerifyCSenseAsync(testCode);
+}
+```

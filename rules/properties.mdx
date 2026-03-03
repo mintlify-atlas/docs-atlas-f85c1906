@@ -1,0 +1,274 @@
+---
+title: Property Documentation Rules
+description: Rules specific to documenting properties and their values
+---
+
+These rules ensure that properties are properly documented with `<value>` tags.
+
+## CSENSE014 - Missing Value Documentation
+
+**Severity:** Disabled (can be enabled via configuration)  
+**Category:** Documentation  
+**Code Fix:** Yes (generates `<value>` placeholder)
+
+### Description
+
+Requires a `<value>` tag for properties. This rule is disabled by default.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE014 (when enabled)">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets or sets the name.</summary>
+    public string Name { get; set; } // CSENSE014 (when enabled)
+
+    /// <summary>Gets the count.</summary>
+    public int Count => 42; // CSENSE014 (when enabled)
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets or sets the name.</summary>
+    /// <value>The user's full name.</value>
+    public string Name { get; set; }
+
+    /// <summary>Gets the count.</summary>
+    /// <value>The number of items in the collection.</value>
+    public int Count => 42;
+}
+```
+</Accordion>
+
+### Special cases
+
+<Accordion title="Write-only properties">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    private int _value;
+
+    /// <summary>Sets the value.</summary>
+    public int Value // No CSENSE014 - write-only properties don't require <value>
+    {
+        set => _value = value;
+    }
+}
+```
+
+<Warning>
+Write-only properties do not require a `<value>` tag even when CSENSE014 is enabled.
+</Warning>
+</Accordion>
+
+<Accordion title="Read-write and read-only properties">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets or sets the name.</summary>
+    /// <value>The user's name.</value>
+    public string Name { get; set; } // Requires <value>
+
+    /// <summary>Gets the ID.</summary>
+    /// <value>The unique identifier.</value>
+    public int Id { get; } // Requires <value>
+
+    /// <summary>Gets the computed value.</summary>
+    /// <value>The result of the computation.</value>
+    public int ComputedValue => 42; // Requires <value>
+}
+```
+</Accordion>
+
+### Configuration
+
+To enable this rule, add the following to your `.editorconfig`:
+
+```ini
+[*.cs]
+dotnet_diagnostic.CSENSE014.severity = warning
+```
+
+---
+
+## CSENSE015 - Stray Value Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes stray tags)
+
+### Description
+
+Flags stray or duplicate `<value>` tags on non-property members or when duplicated.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE015">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets a value.</summary>
+    /// <value>The value.</value> // CSENSE015 - methods should use <returns>
+    public int GetValue()
+    {
+        return 42;
+    }
+
+    /// <summary>Initializes a new instance.</summary>
+    /// <value>A new instance.</value> // CSENSE015 - constructors don't have values
+    public MyClass()
+    {
+    }
+
+    /// <summary>A field.</summary>
+    /// <value>The field value.</value> // CSENSE015 - fields don't use <value>
+    public int MyField;
+
+    /// <summary>Gets or sets the name.</summary>
+    /// <value>The name.</value>
+    /// <value>Another description.</value> // CSENSE015 - duplicate
+    public string Name { get; set; }
+
+    /// <summary>Gets the count.</summary>
+    /// <summary>Nested.</summary>
+    /// <value>The count.</value> // CSENSE015 - nested within incorrect tag
+    public int Count => 0;
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets a value.</summary>
+    /// <returns>The integer value 42.</returns>
+    public int GetValue()
+    {
+        return 42;
+    }
+
+    /// <summary>Initializes a new instance.</summary>
+    public MyClass()
+    {
+    }
+
+    /// <summary>A field.</summary>
+    public int MyField;
+
+    /// <summary>Gets or sets the name.</summary>
+    /// <value>The user's name.</value>
+    public string Name { get; set; }
+
+    /// <summary>Gets the count.</summary>
+    /// <value>The number of items.</value>
+    public int Count => 0;
+}
+```
+</Accordion>
+
+### Special cases
+
+<Accordion title="Write-only properties with <value>">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    private int _value;
+
+    /// <summary>Sets the value.</summary>
+    /// <value>The value to set.</value> // Allowed for write-only properties
+    public int Value
+    {
+        set => _value = value;
+    }
+}
+```
+
+Write-only properties can have a `<value>` tag without triggering CSENSE015.
+</Accordion>
+
+<Accordion title="Indexers">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets or sets the element at the specified index.</summary>
+    /// <param name="index">The index.</param>
+    /// <value>The element at the specified index.</value>
+    public int this[int index]
+    {
+        get => 0;
+        set { }
+    }
+}
+```
+
+Indexers are treated like properties and should use `<value>` rather than `<returns>`.
+</Accordion>
+
+## Best Practices
+
+<Accordion title="When to use <value> vs <returns>">
+**Use `<value>` for:**
+- Properties (read-only, write-only, or read-write)
+- Indexers
+
+**Use `<returns>` for:**
+- Methods
+- Operators
+- Delegates
+
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets the name.</summary>
+    /// <value>The user's name.</value> ✓
+    public string Name { get; }
+
+    /// <summary>Gets the name.</summary>
+    /// <returns>The user's name.</returns> ✓
+    public string GetName() => Name;
+}
+```
+</Accordion>
+
+<Accordion title="Writing quality <value> documentation">
+**Good `<value>` documentation should:**
+- Describe what the property represents, not just repeat the name
+- Include units of measurement when applicable
+- Mention valid value ranges or constraints
+- Avoid low-quality terms like "value" or "property"
+
+**Examples:**
+
+```csharp
+// ❌ Bad
+/// <value>Value</value>
+public int Count { get; set; }
+
+// ❌ Bad
+/// <value>Count</value>
+public int Count { get; set; }
+
+// ✓ Good
+/// <value>The number of items in the collection. Must be non-negative.</value>
+public int Count { get; set; }
+
+// ✓ Good
+/// <value>The timeout duration in milliseconds. Default is 30000.</value>
+public int TimeoutMs { get; set; }
+```
+</Accordion>

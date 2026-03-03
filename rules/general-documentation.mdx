@@ -1,0 +1,582 @@
+---
+title: General Documentation Rules
+description: Core rules for ensuring public APIs have proper XML documentation
+---
+
+These rules ensure that your public-facing APIs are properly documented with meaningful content.
+
+## CSENSE000 - XML Documentation Parsing Disabled
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** No
+
+### Description
+
+This rule warns when XML documentation parsing is disabled for the project. CommentSense relies on the compiler's documentation parsing to analyze your code.
+
+### When it triggers
+
+Triggered when your project doesn't have the following property in the `.csproj` file:
+
+```xml
+<PropertyGroup>
+  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+</PropertyGroup>
+```
+
+### How to fix
+
+Add the property above to your `.csproj` file to enable XML documentation generation.
+
+---
+
+## CSENSE001 - Missing Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (generates `<summary>` placeholder)
+
+### Description
+
+Ensures public members have XML documentation (e.g., `<summary>`, `<inheritdoc />`, or other content tags).
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE001">
+```csharp
+// Class without documentation
+public class MyClass // CSENSE001
+{
+}
+
+// Method without documentation
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    public void MyMethod() // CSENSE001
+    {
+    }
+}
+
+// Property without documentation
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    public int MyProperty { get; set; } // CSENSE001
+}
+
+// Using <inheritdoc /> on a member that doesn't inherit
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <inheritdoc /> 
+    public void MyMethod() // CSENSE001 - not overriding anything
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>A documented method.</summary>
+    public void MyMethod()
+    {
+    }
+
+    /// <summary>A documented property.</summary>
+    /// <value>The property value.</value>
+    public int MyProperty { get; set; }
+
+    /// <summary>A documented field.</summary>
+    public int MyField;
+}
+```
+</Accordion>
+
+### Configuration
+
+<Accordion title="Visibility level">
+Control which members are analyzed based on their accessibility:
+
+```ini
+[*.cs]
+# Options: public, protected, internal, private
+# public: only public members
+# protected: public, protected, and protected internal (default)
+# internal: public, protected, internal, and private protected
+# private: all members
+comment_sense.visibility_level = protected
+```
+</Accordion>
+
+<Accordion title="Exclude constants">
+```ini
+[*.cs]
+comment_sense.exclude_constants = true
+```
+</Accordion>
+
+<Accordion title="Exclude enum members">
+```ini
+[*.cs]
+comment_sense.exclude_enums = true
+```
+</Accordion>
+
+---
+
+## CSENSE007 - Invalid XML Documentation Reference
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** No
+
+### Description
+
+Validates that `cref` attributes in documentation point to valid symbols.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE007">
+```csharp
+/// <summary>
+/// See <see cref="UnresolvedType"/> // CSENSE007
+/// </summary>
+public class MyClass
+{
+}
+
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>
+    /// See <see cref="NonExistentMethod"/> // CSENSE007
+    /// </summary>
+    public void MyMethod()
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>
+/// See <see cref="MyClass"/>
+/// See <see cref="System.String"/>
+/// See <see cref="MyMethod"/>
+/// </summary>
+public class MyClass
+{
+    /// <summary>A documented method.</summary>
+    public void MyMethod()
+    {
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE016 - Low-Quality Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (fixes capitalization and punctuation)
+
+### Description
+
+Flags "low quality" documentation in `<summary>`, `<remarks>`, `<example>`, `<returns>`, `<value>`, `<param>`, `<typeparam>`, and `<exception>` tags.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE016">
+```csharp
+/// <summary>MyClass</summary> // CSENSE016 - repeats member name
+public class MyClass
+{
+}
+
+/// <summary>A class.</summary>
+public class MyClass
+{
+    /// <summary>a method</summary> // CSENSE016 - not capitalized
+    public void MyMethod()
+    {
+    }
+
+    /// <summary>A method</summary> // CSENSE016 - no ending punctuation
+    public void AnotherMethod()
+    {
+    }
+
+    /// <summary></summary> // CSENSE016 - empty
+    public void YetAnotherMethod()
+    {
+    }
+
+    /// <summary>TODO: Add description</summary> // CSENSE016 - contains low-quality term
+    public void IncompleteMethod()
+    {
+    }
+
+    /// <summary>Returns an integer.</summary>
+    /// <param name="value">value</param> // CSENSE016 - repeats parameter name
+    public void SetValue(int value)
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>Represents a user account.</summary>
+public class MyClass
+{
+    /// <summary>Processes the user's data.</summary>
+    public void MyMethod()
+    {
+    }
+
+    /// <summary>Gets or sets the user's age.</summary>
+    /// <param name="value">The new age value in years.</param>
+    public void SetValue(int value)
+    {
+    }
+}
+```
+</Accordion>
+
+### Configuration
+
+<Accordion title="Low-quality terms">
+```ini
+[*.cs]
+# Comma-separated list of terms (case-insensitive)
+comment_sense.low_quality_terms = TODO, TBD, FixMe, None, N/A
+```
+</Accordion>
+
+<Accordion title="Minimum summary length">
+```ini
+[*.cs]
+# Minimum length for summary text (excluding trailing punctuation and whitespace)
+comment_sense.min_summary_length = 10
+```
+</Accordion>
+
+<Accordion title="Ending punctuation">
+```ini
+[*.cs]
+# Whether to require summaries to end with punctuation (. ! ?)
+comment_sense.require_ending_punctuation = true
+```
+</Accordion>
+
+<Accordion title="Capitalization">
+```ini
+[*.cs]
+# Whether to require documentation to start with a capital letter
+comment_sense.require_capitalization = true
+```
+</Accordion>
+
+<Accordion title="Similarity threshold">
+```ini
+[*.cs]
+# Threshold (0.0 to 1.0) for similarity between documentation and member name.
+# Setting this to 0.0 (default) disables similarity analysis.
+# A value of 1.0 only flags documentation identical to the symbol name.
+# Recommended: 0.7 to 0.8
+comment_sense.similarity_threshold = 0.8
+```
+</Accordion>
+
+---
+
+## CSENSE018 - Missing Documentation for Inheriting Member
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (inserts `<inheritdoc />`)
+
+### Description
+
+When configured to require explicit documentation, this rule warns when a member that overrides or implements a base member is missing documentation.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE018">
+```csharp
+// With comment_sense.allow_implicit_inheritdoc = false
+
+/// <summary>Base class.</summary>
+public class Base
+{
+    /// <summary>Virtual method.</summary>
+    public virtual void Method()
+    {
+    }
+}
+
+/// <summary>Derived class.</summary>
+public class Derived : Base
+{
+    public override void Method() // CSENSE018
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>Base class.</summary>
+public class Base
+{
+    /// <summary>Virtual method.</summary>
+    public virtual void Method()
+    {
+    }
+}
+
+/// <summary>Derived class.</summary>
+public class Derived : Base
+{
+    /// <inheritdoc />
+    public override void Method()
+    {
+    }
+}
+```
+</Accordion>
+
+### Configuration
+
+```ini
+[*.cs]
+# By default, overriding/implementing members can implicitly inherit documentation.
+# Set to false to require explicit <inheritdoc /> or other documentation.
+comment_sense.allow_implicit_inheritdoc = false
+```
+
+<Warning>
+By default, CommentSense allows implicit documentation inheritance for overriding/implementing members. Set `allow_implicit_inheritdoc = false` only if you want to enforce explicit `<inheritdoc />` tags.
+</Warning>
+
+---
+
+## CSENSE019 - Use Langword for Keywords
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (wraps keywords in `<see langword="..." />`)
+
+### Description
+
+Recommends using the `<see langword="..." />` tag for C# keywords instead of plain text.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE019">
+```csharp
+/// <summary>Returns true if successful.</summary> // CSENSE019 on "true"
+public class MyClass
+{
+}
+
+/// <summary>Returns null if not found.</summary> // CSENSE019 on "null"
+public class AnotherClass
+{
+}
+
+/// <summary>This method returns void.</summary> // CSENSE019 on "void"
+public class YetAnotherClass
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>Returns <see langword="true"/> if successful.</summary>
+public class MyClass
+{
+}
+
+/// <summary>Returns <see langword="null"/> if not found.</summary>
+public class AnotherClass
+{
+}
+
+/// <summary>This method returns <see langword="void"/>.</summary>
+public class YetAnotherClass
+{
+}
+```
+</Accordion>
+
+### Configuration
+
+```ini
+[*.cs]
+# Comma-separated list of keywords (case-insensitive).
+# Default: true, false, null, void
+# Note: Specifying this option replaces the default list.
+comment_sense.langwords = true, false, null, void, async, await
+```
+
+---
+
+## CSENSE022 - Stray Summary Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes stray tags)
+
+### Description
+
+Flags `<summary>` tags that are nested within other tags or duplicated.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE022">
+```csharp
+/// <summary>A class.</summary>
+public class MyClass
+{
+    /// <remarks>
+    /// <summary>Nested summary</summary> // CSENSE022
+    /// </remarks>
+    public void MyMethod()
+    {
+    }
+
+    /// <summary>First summary</summary>
+    /// <summary>Second summary</summary> // CSENSE022
+    public void AnotherMethod()
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A class.</summary>
+public class MyClass
+{
+    /// <summary>A method.</summary>
+    /// <remarks>Additional remarks about the method.</remarks>
+    public void MyMethod()
+    {
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE024 - Documentation Tag Order Mismatch
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (reorders tags)
+
+### Description
+
+Enforces a standard order for top-level XML documentation tags.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE024">
+```csharp
+/// <summary>A class.</summary>
+public class MyClass
+{
+    /// <returns>An integer.</returns> // CSENSE024 - should come after <summary>
+    /// <summary>A method.</summary>
+    /// <param name="value">The value.</param>
+    public int MyMethod(int value)
+    {
+        return value;
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A class.</summary>
+public class MyClass
+{
+    /// <summary>A method.</summary>
+    /// <param name="value">The value.</param>
+    /// <returns>An integer.</returns>
+    public int MyMethod(int value)
+    {
+        return value;
+    }
+}
+```
+</Accordion>
+
+### Configuration
+
+```ini
+[*.cs]
+# Comma-separated list of tag names in their desired order.
+# Default: inheritdoc, summary, typeparam, param, returns, value, exception, remarks, example, seealso, permission
+comment_sense.tag_order = inheritdoc, summary, param, returns, exception, remarks
+```
+
+---
+
+## CSENSE025 - Inaccessible Cref Reference
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** No
+
+### Description
+
+Flags `cref` attributes that point to symbols with lower accessibility than the member being documented (e.g., a public member pointing to an internal type).
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE025">
+```csharp
+internal class InternalHelper
+{
+}
+
+/// <summary>
+/// Uses <see cref="InternalHelper"/>. // CSENSE025 - public member referencing internal type
+/// </summary>
+public class MyClass
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A public helper class.</summary>
+public class PublicHelper
+{
+}
+
+/// <summary>
+/// Uses <see cref="PublicHelper"/>.
+/// </summary>
+public class MyClass
+{
+}
+```
+</Accordion>

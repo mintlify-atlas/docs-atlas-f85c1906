@@ -1,0 +1,209 @@
+---
+title: Visibility Level Configuration
+description: Control which members are analyzed by CommentSense based on their accessibility level
+---
+
+The visibility level setting determines which members are analyzed by CommentSense based on their accessibility. This allows you to focus documentation requirements on your public API while allowing more flexibility for internal code.
+
+## Configuration Option
+
+<ParamField path="comment_sense.visibility_level" type="enum" default="protected">
+  Sets the visibility threshold for which members should be analyzed.
+  
+  **Valid values:**
+  - `public` - Only public members
+  - `protected` - Public, protected, and protected internal members (default)
+  - `internal` - Public, protected, internal, and private protected members
+  - `private` - All members including private
+</ParamField>
+
+## How Visibility Levels Work
+
+CommentSense analyzes members at or above the configured visibility level:
+
+| Setting | Analyzes |
+|---------|----------|
+| `public` | `public` |
+| `protected` | `public`, `protected`, `protected internal` |
+| `internal` | `public`, `protected`, `internal`, `protected internal`, `private protected` |
+| `private` | All members (including `private`) |
+
+<Note>
+The default value `protected` is recommended for most projects, as it ensures all externally visible members are documented while allowing flexibility for internal implementation details.
+</Note>
+
+## Configuration Examples
+
+### Public API Only (Recommended for Libraries)
+
+For libraries and packages distributed to external consumers, focus on public API documentation:
+
+```ini
+[*.cs]
+# Only analyze public members
+comment_sense.visibility_level = public
+```
+
+**Example behavior:**
+
+```csharp
+// CSENSE001 triggered - public member requires documentation
+public class ApiClient
+{
+    // CSENSE001 triggered - public method requires documentation
+    public void Connect() { }
+    
+    // Not analyzed - protected member below public threshold
+    protected void Initialize() { }
+    
+    // Not analyzed - internal member below public threshold
+    internal void Configure() { }
+    
+    // Not analyzed - private member below public threshold
+    private void Cleanup() { }
+}
+```
+
+### Protected and Above (Default)
+
+For most projects, including those with inheritance hierarchies:
+
+```ini
+[*.cs]
+# Analyze public and protected members (default)
+comment_sense.visibility_level = protected
+```
+
+**Example behavior:**
+
+```csharp
+// CSENSE001 triggered - public class requires documentation
+public class BaseService
+{
+    // CSENSE001 triggered - public method requires documentation
+    public void Execute() { }
+    
+    // CSENSE001 triggered - protected method requires documentation
+    protected virtual void OnExecuting() { }
+    
+    // Not analyzed - internal member below protected threshold
+    internal void LogExecution() { }
+    
+    // Not analyzed - private member below protected threshold
+    private void Cleanup() { }
+}
+```
+
+### Internal and Above
+
+For applications where internal APIs are also important:
+
+```ini
+[*.cs]
+# Analyze public, protected, and internal members
+comment_sense.visibility_level = internal
+```
+
+**Example behavior:**
+
+```csharp
+// CSENSE001 triggered - public class requires documentation
+public class DataProcessor
+{
+    // CSENSE001 triggered - public method requires documentation
+    public void Process() { }
+    
+    // CSENSE001 triggered - internal method requires documentation
+    internal void ProcessInternal() { }
+    
+    // Not analyzed - private member below internal threshold
+    private void ProcessCore() { }
+}
+```
+
+### All Members (Including Private)
+
+For projects with strict internal documentation requirements:
+
+```ini
+[*.cs]
+# Analyze all members including private
+comment_sense.visibility_level = private
+```
+
+<Warning>
+Setting `visibility_level = private` requires documentation for all members, including private implementation details. This is very strict and rarely necessary. Consider whether this level of documentation is truly beneficial for your project.
+</Warning>
+
+## Scoped Configuration
+
+You can use different visibility levels for different parts of your codebase:
+
+```ini
+root = true
+
+# Default: protected members and above
+[*.cs]
+comment_sense.visibility_level = protected
+
+# Public API: only public members
+[src/PublicApi/**/*.cs]
+comment_sense.visibility_level = public
+
+# Internal utilities: internal and above
+[src/Internal/**/*.cs]
+comment_sense.visibility_level = internal
+
+# Core infrastructure: all members
+[src/Core/**/*.cs]
+comment_sense.visibility_level = private
+```
+
+## Backward Compatibility
+
+<Info>
+CommentSense previously used `comment_sense.analyze_internal` to enable internal member analysis. This option is still supported for backward compatibility.
+
+If `analyze_internal = true` is set and `visibility_level` is not specified, CommentSense will use `visibility_level = internal`.
+</Info>
+
+**Legacy configuration:**
+
+```ini
+[*.cs]
+# Old style (still works)
+comment_sense.analyze_internal = true
+
+# Equivalent new style (recommended)
+comment_sense.visibility_level = internal
+```
+
+## Related Rules
+
+The visibility level setting affects these diagnostics:
+
+- **CSENSE001** - Missing XML documentation for public members
+- **CSENSE002** - Missing parameter documentation
+- **CSENSE004** - Missing type parameter documentation
+- **CSENSE006** - Missing returns documentation
+- **CSENSE012** - Missing exception documentation
+- **CSENSE014** - Missing value documentation for properties
+- **CSENSE018** - Missing explicit documentation for inherited members
+
+<Note>
+Members below the configured visibility threshold are completely excluded from all CommentSense analysis, including quality checks and tag validation.
+</Note>
+
+## Best Practices
+
+1. **Start with `protected`** (default) and adjust based on your needs
+2. **Use `public` for libraries** distributed to external consumers
+3. **Consider `internal` for applications** with complex internal APIs
+4. **Avoid `private`** unless you have specific documentation requirements for implementation details
+5. **Use scoped configuration** to apply different levels to different parts of your codebase
+
+## See Also
+
+- [Advanced Configuration](/configuration/advanced) - Exclude constants, enums, and configure implicit inheritdoc
+- [Quality Checks](/configuration/quality-checks) - Configure documentation quality standards
+- [Exception Documentation](/configuration/exceptions) - Configure exception documentation requirements

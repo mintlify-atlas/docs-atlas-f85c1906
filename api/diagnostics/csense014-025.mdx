@@ -1,0 +1,732 @@
+---
+title: CSENSE014-025 - Advanced Rules
+description: Advanced documentation quality and style rules
+---
+
+# CSENSE014-025: Advanced Rules
+
+These diagnostics enforce advanced documentation quality standards, style consistency, and best practices.
+
+## CSENSE014: Missing Value Documentation
+
+<ParamField query="ID" type="string" default="CSENSE014">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="false">
+  Whether this rule is enabled by default (disabled by default)
+</ParamField>
+
+### Description
+
+Publicly accessible properties and indexers should have a `<value>` tag to document the value they represent. This rule is disabled by default.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Gets or sets the user's name.
+/// </summary>
+public string Name { get; set; }
+// CSENSE014: The symbol 'Name' is missing value documentation
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Gets or sets the user's name.
+/// </summary>
+/// <value>The user's full name.</value>
+public string Name { get; set; }
+```
+
+---
+
+## CSENSE015: Stray Value Documentation
+
+<ParamField query="ID" type="string" default="CSENSE015">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should not contain `<value>` tags for methods, or if duplicated.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Calculates the total.
+/// </summary>
+/// <value>The calculated total.</value>
+public decimal CalculateTotal()
+// CSENSE015: The <value> tag for 'CalculateTotal' is misplaced, duplicated, or invalid
+{
+    return 0;
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Calculates the total.
+/// </summary>
+/// <returns>The calculated total.</returns>
+public decimal CalculateTotal()
+{
+    return 0;
+}
+```
+
+---
+
+## CSENSE016: Low Quality Documentation
+
+<ParamField query="ID" type="string" default="CSENSE016">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should provide value and not just repeat the member name or be empty. This rule detects various quality issues:
+- Empty documentation
+- Documentation that just repeats the member name
+- Documentation that's too similar to the member name
+- Documentation that's too short
+- Documentation missing ending punctuation
+- Documentation not starting with a capital letter
+- Documentation containing low-quality placeholder terms
+
+### Examples
+
+#### Violations
+
+```csharp
+/// <summary>
+/// GetUserName
+/// </summary>
+public string GetUserName()
+// CSENSE016: The summary documentation for 'GetUserName' is low-quality
+{
+    return userName;
+}
+
+/// <summary>
+/// TODO: Add documentation
+/// </summary>
+public void Process()
+// CSENSE016: The summary documentation for 'Process' is low-quality
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Retrieves the current user's name from the system.
+/// </summary>
+public string GetUserName()
+{
+    return userName;
+}
+
+/// <summary>
+/// Processes the pending requests in the queue.
+/// </summary>
+public void Process()
+{
+    // Implementation
+}
+```
+
+### Configuration
+
+```ini
+# Minimum length for summary documentation
+comment_sense.min_summary_length = 10
+
+# Require ending punctuation (. ! ?)
+comment_sense.require_ending_punctuation = true
+
+# Require capitalization at the start
+comment_sense.require_capitalization = true
+
+# Similarity threshold (0.0-1.0) for detecting name repetition
+comment_sense.similarity_threshold = 0.8
+
+# Add custom low-quality terms to detect
+comment_sense.low_quality_terms = TODO,FIXME,HACK,XXX
+```
+
+---
+
+## CSENSE017: Invalid Exception Type
+
+<ParamField query="ID" type="string" default="CSENSE017">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+The type referenced in the `<exception>` tag must derive from System.Exception.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Validates user input.
+/// </summary>
+/// <exception cref="ValidationResult">Thrown when validation fails.</exception>
+public void Validate(string input)
+// CSENSE017: The documented exception type 'ValidationResult' is not an Exception
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Validates user input.
+/// </summary>
+/// <exception cref="ValidationException">Thrown when validation fails.</exception>
+public void Validate(string input)
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE018: Missing InheritDoc
+
+<ParamField query="ID" type="string" default="CSENSE018">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+The symbol overrides or implements a base member but is missing documentation. You should add `<inheritdoc />` or custom documentation.
+
+### Examples
+
+#### Violation
+
+```csharp
+public interface IProcessor
+{
+    /// <summary>
+    /// Processes the data.
+    /// </summary>
+    void Process();
+}
+
+public class MyProcessor : IProcessor
+{
+    public void Process()
+    // CSENSE018: The symbol 'Process' overrides or implements a base member
+    // but is missing documentation. Add <inheritdoc /> or custom documentation.
+    {
+        // Implementation
+    }
+}
+```
+
+#### Fixed
+
+```csharp
+public class MyProcessor : IProcessor
+{
+    /// <inheritdoc />
+    public void Process()
+    {
+        // Implementation
+    }
+}
+```
+
+### Configuration
+
+```ini
+# Allow implicit inheritdoc (treat undocumented overrides as having <inheritdoc />)
+comment_sense.allow_implicit_inheritdoc = true
+```
+
+---
+
+## CSENSE019: Use Langword
+
+<ParamField query="ID" type="string" default="CSENSE019">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+C# keywords should be referenced using the `<see langword="..." />` tag in documentation for proper formatting and semantic clarity.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Returns null if the user is not found.
+/// </summary>
+public User FindUser(int id)
+// CSENSE019: The word 'null' should be replaced with <see langword="null" />
+{
+    return null;
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Returns <see langword="null"/> if the user is not found.
+/// </summary>
+public User FindUser(int id)
+{
+    return null;
+}
+```
+
+### Configuration
+
+```ini
+# Define which keywords to check (default: true, false, null, void)
+comment_sense.langwords = true,false,null,void,async,await
+```
+
+---
+
+## CSENSE020: Ghost Parameter Reference
+
+<ParamField query="ID" type="string" default="CSENSE020">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Parameter names mentioned in documentation should be wrapped in `<paramref>` tags to ensure they stay in sync during refactoring.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Divides numerator by denominator.
+/// </summary>
+public decimal Divide(decimal numerator, decimal denominator)
+// CSENSE020: The word 'numerator' matches a parameter name and should be wrapped in <paramref name="numerator" />
+// CSENSE020: The word 'denominator' matches a parameter name and should be wrapped in <paramref name="denominator" />
+{
+    return numerator / denominator;
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Divides <paramref name="numerator"/> by <paramref name="denominator"/>.
+/// </summary>
+public decimal Divide(decimal numerator, decimal denominator)
+{
+    return numerator / denominator;
+}
+```
+
+### Configuration
+
+```ini
+# Control ghost reference detection mode
+comment_sense.ghost_references.mode = safe
+```
+
+Modes:
+- `off` - Disable ghost reference detection
+- `safe` - Only check complex names (camelCase, PascalCase, underscores, or digits)
+- `strict` - Check all parameters regardless of casing or length
+
+---
+
+## CSENSE021: Ghost Type Parameter Reference
+
+<ParamField query="ID" type="string" default="CSENSE021">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Type parameter names mentioned in documentation should be wrapped in `<typeparamref>` tags to ensure they stay in sync during refactoring.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Converts TInput to TOutput.
+/// </summary>
+public class Converter<TInput, TOutput>
+// CSENSE021: The word 'TInput' matches a type parameter name and should be wrapped in <typeparamref name="TInput" />
+// CSENSE021: The word 'TOutput' matches a type parameter name and should be wrapped in <typeparamref name="TOutput" />
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Converts <typeparamref name="TInput"/> to <typeparamref name="TOutput"/>.
+/// </summary>
+public class Converter<TInput, TOutput>
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE022: Stray Summary Documentation
+
+<ParamField query="ID" type="string" default="CSENSE022">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should only contain a single top-level `<summary>` tag.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// First summary.
+/// </summary>
+/// <summary>
+/// Second summary.
+/// </summary>
+public void MyMethod()
+// CSENSE022: The <summary> tag for 'MyMethod' is misplaced, duplicated, or invalid
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Combined summary description.
+/// </summary>
+public void MyMethod()
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE023: Stray Exception Documentation
+
+<ParamField query="ID" type="string" default="CSENSE023">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should only contain top-level `<exception>` tags, and each exception type should be documented only once.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Processes the data.
+/// </summary>
+/// <exception cref="ArgumentNullException">First occurrence.</exception>
+/// <exception cref="ArgumentNullException">Duplicate.</exception>
+public void Process(string data)
+// CSENSE023: The <exception> tag for 'ArgumentNullException' is misplaced, duplicated, or invalid
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Processes the data.
+/// </summary>
+/// <exception cref="ArgumentNullException">Thrown when data is null.</exception>
+public void Process(string data)
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE024: Documentation Tag Order Mismatch
+
+<ParamField query="ID" type="string" default="CSENSE024">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+XML documentation tags should follow a consistent order to improve readability. The default order is:
+1. `<inheritdoc />`
+2. `<summary>`
+3. `<typeparam>`
+4. `<param>`
+5. `<returns>` or `<value>`
+6. `<exception>`
+7. `<remarks>`
+8. `<example>`
+9. `<seealso>`
+10. `<permission>`
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <param name="value">The input value.</param>
+/// <summary>
+/// Processes a value.
+/// </summary>
+public void Process(int value)
+// CSENSE024: The 'summary' tag should appear before the 'param' tag
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Processes a value.
+/// </summary>
+/// <param name="value">The input value.</param>
+public void Process(int value)
+{
+    // Implementation
+}
+```
+
+### Configuration
+
+```ini
+# Customize the tag order
+comment_sense.tag_order = inheritdoc,summary,typeparam,param,returns,exception,remarks
+```
+
+---
+
+## CSENSE025: Inaccessible Cref
+
+<ParamField query="ID" type="string" default="CSENSE025">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+The `cref` attribute in XML documentation should not refer to a member with lower accessibility than the member being documented, as it will result in broken links in the generated documentation.
+
+### Examples
+
+#### Violation
+
+```csharp
+private class InternalHelper { }
+
+/// <summary>
+/// See <see cref="InternalHelper"/> for implementation details.
+/// </summary>
+public class PublicClass
+// CSENSE025: The cref reference 'InternalHelper' is less accessible than the member 'PublicClass'
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+public class PublicHelper { }
+
+/// <summary>
+/// See <see cref="PublicHelper"/> for implementation details.
+/// </summary>
+public class PublicClass
+{
+    // Implementation
+}
+```
+
+## Related Rules
+
+- [CSENSE001](/api/diagnostics/csense001) - Missing documentation
+- [CSENSE007](/api/diagnostics/csense006-013#csense007-unresolved-cref) - Unresolved cref

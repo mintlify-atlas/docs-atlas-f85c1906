@@ -1,0 +1,318 @@
+---
+title: Automatic Code Fixes
+description: Learn how to use CommentSense's automatic code fixes and Fix All functionality to quickly resolve documentation issues
+---
+
+CommentSense provides powerful automatic code fixes for all its diagnostics, helping you resolve documentation issues quickly and consistently across your codebase.
+
+## Understanding Code Fixes
+
+When CommentSense detects a documentation issue, it not only reports the diagnostic but also offers one or more code fixes that can automatically correct the problem. These fixes appear as "lightbulb" suggestions in Visual Studio and other IDEs that support Roslyn code fixes.
+
+### Available Code Fixes
+
+CommentSense offers code fixes for the following scenarios:
+
+#### Missing Documentation
+
+- **CSENSE001**: Automatically adds a `<summary>` tag with a placeholder
+- **CSENSE018**: Inserts an `<inheritdoc />` tag for inheriting members
+- **CSENSE002/CSENSE004**: Generates missing `<param>` or `<typeparam>` tags
+- **CSENSE006**: Adds a `<returns>` tag for methods with return values
+- **CSENSE014**: Inserts a `<value>` tag for properties
+- **CSENSE012**: Creates `<exception>` tags for undocumented thrown exceptions
+
+<CodeGroup>
+```csharp Before
+public class Calculator
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+
+```csharp After (CSENSE001 Fix Applied)
+/// <summary>
+/// [Documentation placeholder]
+/// </summary>
+public class Calculator
+{
+    /// <summary>
+    /// [Documentation placeholder]
+    /// </summary>
+    /// <param name="a">[Documentation placeholder]</param>
+    /// <param name="b">[Documentation placeholder]</param>
+    /// <returns>[Documentation placeholder]</returns>
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+</CodeGroup>
+
+#### Stray and Duplicate Tags
+
+- **CSENSE003/CSENSE005**: Removes stray parameter tags that don't match any parameter
+- **CSENSE009/CSENSE011**: Removes duplicate parameter documentation
+- **CSENSE013**: Removes stray `<returns>` tags from void methods
+- **CSENSE015**: Removes stray `<value>` tags
+- **CSENSE022**: Removes stray or duplicate `<summary>` tags
+- **CSENSE023**: Removes stray or duplicate `<exception>` tags
+
+<CodeGroup>
+```csharp Before
+/// <summary>
+/// Calculates the sum.
+/// </summary>
+/// <param name="x">First number</param>
+/// <param name="oldName">Second number</param>
+/// <returns>The sum</returns>
+public int Add(int a, int b)
+{
+    return a + b;
+}
+```
+
+```csharp After (CSENSE003 Fix Applied)
+/// <summary>
+/// Calculates the sum.
+/// </summary>
+/// <param name="a">[Documentation placeholder]</param>
+/// <param name="b">[Documentation placeholder]</param>
+/// <returns>The sum</returns>
+public int Add(int a, int b)
+{
+    return a + b;
+}
+```
+</CodeGroup>
+
+<Tip>
+CommentSense uses fuzzy matching to detect when a stray tag might correspond to a renamed parameter. It offers a rename fix in addition to the removal fix.
+</Tip>
+
+#### Tag Ordering
+
+- **CSENSE008/CSENSE010**: Reorders parameter tags to match the method signature
+- **CSENSE024**: Reorders top-level documentation tags to follow the configured order
+
+<CodeGroup>
+```csharp Before
+/// <summary>
+/// Divides two numbers.
+/// </summary>
+/// <param name="divisor">The divisor</param>
+/// <param name="dividend">The dividend</param>
+public int Divide(int dividend, int divisor)
+{
+    return dividend / divisor;
+}
+```
+
+```csharp After (CSENSE008 Fix Applied)
+/// <summary>
+/// Divides two numbers.
+/// </summary>
+/// <param name="dividend">The dividend</param>
+/// <param name="divisor">The divisor</param>
+public int Divide(int dividend, int divisor)
+{
+    return dividend / divisor;
+}
+```
+</CodeGroup>
+
+#### Quality Improvements
+
+- **CSENSE016**: Automatically capitalizes documentation and adds ending punctuation
+- **CSENSE019**: Wraps C# keywords in `<see langword="..." />` tags
+- **CSENSE020/CSENSE021**: Wraps parameter references in `<paramref />` or `<typeparamref />` tags
+
+<CodeGroup>
+```csharp Before
+/// <summary>
+/// returns true if the value is null
+/// </summary>
+public bool IsNull(object value)
+{
+    return value == null;
+}
+```
+
+```csharp After (Multiple Fixes Applied)
+/// <summary>
+/// Returns <see langword="true" /> if the <paramref name="value" /> is <see langword="null" />.
+/// </summary>
+public bool IsNull(object value)
+{
+    return value == null;
+}
+```
+</CodeGroup>
+
+## Using Fix All
+
+One of CommentSense's most powerful features is **Fix All** support. Every code fix provider inherits from `CodeFixProviderBase` and returns `WellKnownFixAllProviders.BatchFixer`, enabling bulk operations.
+
+### Fix All Scopes
+
+You can apply fixes at different scopes:
+
+<Steps>
+  <Step title="Fix All in Document">
+    Applies the fix to all instances of the diagnostic in the current file.
+    
+    **Use case**: Quickly clean up documentation in a single file you're working on.
+  </Step>
+  
+  <Step title="Fix All in Project">
+    Applies the fix across all files in the current project.
+    
+    **Use case**: Standardize documentation across a library or application project.
+  </Step>
+  
+  <Step title="Fix All in Solution">
+    Applies the fix to every project in your solution.
+    
+    **Use case**: Enforce documentation standards across your entire codebase.
+  </Step>
+</Steps>
+
+### How Fix All Works
+
+<Tip>
+CommentSense's Fix All implementation processes files in parallel when possible, making bulk operations fast even on large codebases.
+</Tip>
+
+The Fix All logic (implemented in `CodeFixProviderBase.FixAllProviderBase`) follows this pattern:
+
+1. **Collect diagnostics** for the selected scope (document, project, or solution)
+2. **Group diagnostics** by file and by member declaration
+3. **Apply all fixes** to each member in a single operation to avoid conflicts
+4. **Replace nodes** in the syntax tree with updated versions
+5. **Return the updated document/solution**
+
+For example, when fixing missing parameter documentation across a project:
+
+```csharp
+// From ContentGenerationCodeFixProvider.cs
+internal override async Task<Document> FixDocumentInternalAsync(
+    Document document, 
+    ImmutableArray<Diagnostic> diagnostics, 
+    CancellationToken cancellationToken)
+{
+    var root = await document.GetSyntaxRootAsync(cancellationToken);
+    var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+    
+    // Group diagnostics by member
+    var memberGroups = GetMemberGroups(root, semanticModel, diagnostics, cancellationToken);
+    
+    // Apply all fixes to each member at once
+    var newRoot = root.ReplaceNodes(memberGroups.Keys, (oldNode, newNode) =>
+    {
+        var updatedMember = member;
+        foreach (var diag in diagList)
+        {
+            updatedMember = ApplyDiagnosticToMember(updatedMember, diag, symbol, options);
+        }
+        return updatedMember;
+    });
+    
+    return document.WithSyntaxRoot(newRoot);
+}
+```
+
+## Intelligent Fixes
+
+### Fuzzy Matching for Renames
+
+When you rename a parameter but forget to update the documentation, CommentSense detects the mismatch and offers two fixes:
+
+1. **Remove the stray tag** (always available)
+2. **Rename the tag** to match the current parameter (when similarity is above threshold)
+
+The fuzzy matching uses a configurable similarity threshold:
+
+```ini
+[*.cs]
+# Default: 0.5
+comment_sense.rename_similarity_threshold = 0.6
+```
+
+<CodeGroup>
+```csharp Code
+public void Process(string fileName)
+{
+    // ...
+}
+```
+
+```xml Documentation (Before Rename)
+/// <param name="filePath">The file path</param>
+```
+
+```xml Fix Options
+<!-- Option 1: Remove stray tag -->
+<!-- (no param tag) -->
+
+<!-- Option 2: Rename to match current parameter -->
+/// <param name="fileName">The file path</param>
+```
+</CodeGroup>
+
+### Context-Aware Tag Insertion
+
+When adding missing tags, CommentSense respects your configured tag order and inserts new tags in the correct position:
+
+```csharp
+// From ContentGenerationCodeFixProvider.cs:259
+internal static DocumentationCommentTriviaSyntax InsertTagToTrivia(
+    DocumentationCommentTriviaSyntax docTrivia, 
+    string tagName, 
+    string? name, 
+    ISymbol? symbol, 
+    string placeholder,
+    CommentSenseOptions? options)
+{
+    var insertionIndex = FindInsertionIndex(content, tagName, name, symbol, options);
+    var newNodes = CreateTagNodes(tagName, name, placeholder);
+    return docTrivia.WithContent(content.InsertRange(insertionIndex, newNodes));
+}
+```
+
+This ensures that even when using Fix All, your documentation maintains a consistent structure.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Fix All Strategically" icon="wand-magic-sparkles">
+    Start with "Fix All in Document" to see the changes. Once you're confident, scale up to project or solution level.
+  </Card>
+  
+  <Card title="Review Placeholders" icon="pen">
+    Code fixes insert `[Documentation placeholder]` text. Replace these with meaningful descriptions.
+  </Card>
+  
+  <Card title="Configure Before Fixing" icon="gear">
+    Set up your `.editorconfig` with tag order, langwords, and other preferences before running Fix All.
+  </Card>
+  
+  <Card title="Combine with Source Control" icon="code-branch">
+    Use Fix All on a separate branch or commit so you can review the changes before merging.
+  </Card>
+</CardGroup>
+
+## Keyboard Shortcuts
+
+In Visual Studio:
+
+- **Ctrl + .** or **Alt + Enter**: Show available code fixes
+- **Ctrl + .**, then **Tab**: Preview Fix All options
+- **Ctrl + .**, **Tab**, **Enter**: Apply Fix All in Document
+
+## Related Rules
+
+See the [Rules Reference](/rules) for detailed information about each diagnostic and its associated code fix.

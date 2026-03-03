@@ -1,0 +1,394 @@
+---
+title: Advanced Configuration
+description: Configure conditional suppression, constant and enum exclusions, and implicit documentation inheritance
+---
+
+CommentSense provides advanced configuration options for fine-tuning analyzer behavior in specific scenarios.
+
+## Conditional Suppression
+
+CommentSense automatically suppresses several built-in C# compiler diagnostics that overlap with its own rules to prevent duplicate warnings.
+
+### Suppressed Compiler Diagnostics
+
+By default, CommentSense suppresses these diagnostics globally:
+
+- **CS1591** - Missing XML comment for publicly visible type or member
+- **CS1573** - Parameter has no matching param tag in the XML comment
+- **CS1572** - XML comment has a param tag for a non-existent parameter
+- **CS1571** - XML comment has a duplicate param tag
+- **CS1584** - XML comment has syntactically incorrect cref attribute
+- **CS1574** - XML comment has cref attribute that could not be resolved
+- **CS1658** - Error in XML comment (e.g., syntax error in cref)
+
+### Configuration Option
+
+<ParamField path="comment_sense.enable_conditional_suppression" type="boolean" default="false">
+  Controls how CommentSense suppresses overlapping compiler warnings.
+  
+  - `false` (default) - Suppresses the above diagnostics **globally** for the entire project
+  - `true` - Suppresses diagnostics **only for members** that CommentSense is actively analyzing
+</ParamField>
+
+### When to Use Conditional Suppression
+
+Conditional suppression is useful when you exclude certain members from CommentSense analysis but still want the standard C# compiler warnings to report issues for them.
+
+**Example scenario:**
+
+```ini
+[*.cs]
+comment_sense.visibility_level = public
+comment_sense.exclude_constants = true
+comment_sense.enable_conditional_suppression = true
+```
+
+**Behavior:**
+
+```csharp
+// CommentSense analyzes this (public, not a constant)
+// CS1591 is suppressed, only CSENSE001 is shown
+public class Service { }
+
+// CommentSense excludes this (constant)
+// CS1591 is NOT suppressed, so you'll see the compiler warning
+public const string Version = "1.0";
+
+// CommentSense excludes this (internal)
+// CS1591 is NOT suppressed for this member
+internal void ProcessInternal() { }
+```
+
+<Info>
+With `enable_conditional_suppression = false` (default), CS1591 is suppressed globally, so you won't see warnings for constants or internal members at all.
+</Info>
+
+### Configuration Examples
+
+**Default behavior (global suppression):**
+
+```ini
+[*.cs]
+comment_sense.enable_conditional_suppression = false
+```
+
+All compiler documentation warnings are suppressed globally. Only CommentSense diagnostics are shown.
+
+**Conditional suppression:**
+
+```ini
+[*.cs]
+comment_sense.enable_conditional_suppression = true
+comment_sense.exclude_constants = true
+```
+
+CommentSense diagnostics appear for non-constant members. Compiler warnings appear for constants.
+
+## Excluding Constants
+
+<ParamField path="comment_sense.exclude_constants" type="boolean" default="false">
+  When set to `true`, skips documentation requirements for constant fields.
+  
+  Constants like `public const string Version = "1.0";` are often self-explanatory and may not need documentation.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+comment_sense.exclude_constants = true
+```
+
+**Example behavior:**
+
+```csharp
+public class AppConfig
+{
+    // Not analyzed - constant field excluded
+    public const string Version = "1.0.0";
+    
+    // Not analyzed - constant field excluded
+    public const int MaxRetries = 3;
+    
+    // CSENSE001 triggered - readonly field still requires documentation
+    public readonly string ConnectionString;
+    
+    // CSENSE001 triggered - static field still requires documentation
+    public static int InstanceCount;
+}
+```
+
+<Note>
+This setting only affects `const` fields. Static readonly fields, properties, and other members still require documentation.
+</Note>
+
+### When to Exclude Constants
+
+Consider excluding constants when:
+
+- Constant names are self-documenting (e.g., `MaxRetryCount`, `DefaultTimeout`)
+- Constants represent simple configuration values
+- Your codebase has many constants with obvious purposes
+
+**Don't exclude constants when:**
+
+- Constants represent complex business rules
+- Constant values have non-obvious meanings
+- Constants are part of a public API contract
+
+## Excluding Enum Members
+
+<ParamField path="comment_sense.exclude_enums" type="boolean" default="false">
+  When set to `true`, skips documentation requirements for enum members.
+  
+  Enum members with descriptive names often don't need additional documentation.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+comment_sense.exclude_enums = true
+```
+
+**Example behavior:**
+
+```csharp
+// CSENSE001 triggered - enum type still requires documentation
+public enum Status
+{
+    // Not analyzed - enum member excluded
+    Pending,
+    
+    // Not analyzed - enum member excluded
+    Active,
+    
+    // Not analyzed - enum member excluded
+    Completed
+}
+```
+
+<Info>
+This setting only affects enum **members**, not the enum type itself. The enum type declaration still requires documentation.
+</Info>
+
+### When to Exclude Enum Members
+
+Consider excluding enum members when:
+
+- Enum member names clearly describe their purpose
+- Enums represent simple state machines or status values
+- Your codebase has many enums with self-documenting names
+
+**Don't exclude enum members when:**
+
+- Enum values have specific business meanings that aren't obvious
+- Enum members represent complex states with conditions
+- Enum values have deprecation notes or usage guidelines
+
+## Implicit Documentation Inheritance
+
+<ParamField path="comment_sense.allow_implicit_inheritdoc" type="boolean" default="true">
+  Controls whether members that override or implement base members can implicitly inherit documentation.
+  
+  - `true` (default) - Allows implicit documentation inheritance for overriding/implementing members
+  - `false` - Requires explicit documentation (e.g., `<inheritdoc />`) for all members, triggering CSENSE018
+  
+  **Note:** This setting does not apply to types (classes, interfaces, etc.), which always require explicit documentation.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+comment_sense.allow_implicit_inheritdoc = false
+```
+
+### Default Behavior (Implicit Inheritance Allowed)
+
+```csharp
+public abstract class BaseService
+{
+    /// <summary>
+    /// Executes the service operation.
+    /// </summary>
+    public abstract void Execute();
+}
+
+public class ConcreteService : BaseService
+{
+    // OK - implicitly inherits documentation from base
+    public override void Execute()
+    {
+        // Implementation
+    }
+}
+```
+
+### Strict Behavior (Explicit Documentation Required)
+
+```ini
+[*.cs]
+comment_sense.allow_implicit_inheritdoc = false
+```
+
+```csharp
+public abstract class BaseService
+{
+    /// <summary>
+    /// Executes the service operation.
+    /// </summary>
+    public abstract void Execute();
+}
+
+public class ConcreteService : BaseService
+{
+    // CSENSE018 triggered - requires explicit documentation
+    public override void Execute()
+    {
+        // Implementation
+    }
+}
+```
+
+**Fix with `<inheritdoc />`:**
+
+```csharp
+public class ConcreteService : BaseService
+{
+    /// <inheritdoc />
+    public override void Execute()
+    {
+        // Implementation
+    }
+}
+```
+
+<Note>
+CommentSense provides an automatic code fix to insert an `<inheritdoc />` tag for CSENSE018. This fix supports **Fix All** in document, project, or solution.
+</Note>
+
+### Interface Implementations
+
+The same rules apply to interface implementations:
+
+```csharp
+public interface IProcessor
+{
+    /// <summary>
+    /// Processes the data.
+    /// </summary>
+    void Process();
+}
+
+public class DataProcessor : IProcessor
+{
+    // With allow_implicit_inheritdoc = false:
+    // CSENSE018 triggered - requires explicit documentation
+    public void Process()
+    {
+        // Implementation
+    }
+}
+```
+
+### Types Always Require Explicit Documentation
+
+<Warning>
+Implicit inheritance is **never** allowed for types (classes, interfaces, structs, etc.). Types always require explicit documentation, even with `allow_implicit_inheritdoc = true`.
+</Warning>
+
+```csharp
+public abstract class BaseService
+{
+    /// <summary>Base service.</summary>
+    public abstract void Execute();
+}
+
+// CSENSE001 triggered - class requires explicit documentation
+// even if it only contains inherited members
+public class ConcreteService : BaseService
+{
+    /// <inheritdoc />
+    public override void Execute() { }
+}
+```
+
+**Correct:**
+
+```csharp
+/// <summary>
+/// Concrete implementation of the base service.
+/// </summary>
+public class ConcreteService : BaseService
+{
+    /// <inheritdoc />
+    public override void Execute() { }
+}
+```
+
+## Complete Advanced Configuration Example
+
+```ini
+[*.cs]
+# Enable conditional suppression for excluded members
+comment_sense.enable_conditional_suppression = true
+
+# Exclude constants and enums from analysis
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+
+# Require explicit documentation for inherited members
+comment_sense.allow_implicit_inheritdoc = false
+```
+
+## Scoped Advanced Configuration
+
+Apply different advanced rules to different parts of your codebase:
+
+```ini
+root = true
+
+# Default: allow implicit inheritance
+[*.cs]
+comment_sense.allow_implicit_inheritdoc = true
+comment_sense.exclude_constants = false
+
+# Public API: strict documentation
+[src/PublicApi/**/*.cs]
+comment_sense.allow_implicit_inheritdoc = false
+comment_sense.exclude_constants = false
+comment_sense.exclude_enums = false
+
+# Internal utilities: relaxed rules
+[src/Internal/**/*.cs]
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+
+# Test projects: very relaxed
+[tests/**/*.cs]
+comment_sense.visibility_level = public
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+comment_sense.enable_conditional_suppression = true
+```
+
+## Related Rules
+
+- **CSENSE001** - Missing XML documentation (affected by `exclude_constants` and `exclude_enums`)
+- **CSENSE018** - Missing explicit documentation for inherited members (controlled by `allow_implicit_inheritdoc`)
+- **CS1591** - Compiler diagnostic for missing XML comments (affected by `enable_conditional_suppression`)
+
+## Best Practices
+
+1. **Use conditional suppression carefully** - Only enable it if you need compiler warnings for excluded members
+2. **Exclude constants and enums judiciously** - Consider whether your constants/enums truly are self-documenting
+3. **Require explicit inheritdoc for public APIs** - Set `allow_implicit_inheritdoc = false` for library code
+4. **Allow implicit inheritance for internal code** - Keep the default `true` for application code
+5. **Use scoped configuration** - Apply stricter rules to public APIs and relaxed rules to internal code
+
+## See Also
+
+- [Visibility Levels](/configuration/visibility-levels) - Configure which members are analyzed
+- [Quality Checks](/configuration/quality-checks) - Configure documentation quality standards
+- [Exception Documentation](/configuration/exceptions) - Configure exception documentation requirements

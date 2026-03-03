@@ -1,0 +1,147 @@
+---
+title: Project Architecture
+description: Understand the CommentSense project structure, code organization, and key components
+---
+
+CommentSense is organized into a modular architecture that separates analyzers, code fixes, and core utilities. This design makes the codebase maintainable and allows for easy extension.
+
+## Project Structure
+
+The CommentSense solution is organized into the following main directories:
+
+```
+CommentSense/
+├── src/                          # Source code
+│   ├── CommentSense.Analyzers/  # Diagnostic analyzers
+│   ├── CommentSense.CodeFixes/  # Code fix providers
+│   └── CommentSense.Core/       # Shared utilities and constants
+├── tests/                        # Test projects
+│   ├── CommentSense.Analyzers.Tests/
+│   ├── CommentSense.CodeFixes.Tests/
+│   └── CommentSense.TestHelpers/
+└── benchmarks/                   # Performance benchmarks
+```
+
+## Source Projects
+
+### CommentSense.Analyzers
+
+Contains the core diagnostic analyzers that detect documentation issues in C# code. This is the main analysis engine of CommentSense.
+
+**Key Components:**
+
+- `CommentSenseAnalyzer.cs` - The main diagnostic analyzer that coordinates all analysis
+- `CommentSenseRules.cs` - Defines all diagnostic rules (CSENSE001-025)
+- `CommentSenseSuppressor.cs` - Suppresses overlapping compiler diagnostics (CS1591, CS1573, etc.)
+- `AnalyzerExtensions.cs` - Extension methods and helper utilities
+
+**Logic Directory:**
+
+The `Logic/` directory contains specialized analyzers for different documentation aspects:
+
+- `SummaryAnalyzer.cs` - Validates `<summary>` tags and general documentation presence
+- `ParameterAnalyzer.cs` - Validates `<param>` tags match method parameters
+- `TypeParameterAnalyzer.cs` - Validates `<typeparam>` tags match generic parameters
+- `ReturnValueAnalyzer.cs` - Validates `<returns>` tags for methods
+- `ExceptionAnalyzer.cs` - Detects thrown exceptions and validates `<exception>` tags
+- `QualityAnalyzer.cs` - Flags low-quality documentation (empty, too short, etc.)
+- `CrefAnalyzer.cs` - Validates `cref` attributes reference valid symbols
+- `LangwordAnalyzer.cs` - Suggests using `<see langword="..."/>` for keywords
+- `GhostReferenceAnalyzer.cs` - Detects parameter names not wrapped in `<paramref/>`
+- `TagOrderAnalyzer.cs` - Enforces standard order for documentation tags
+- `SupplementalAnalyzer.cs` - Additional validation logic
+- `CollectionDocumentationAnalyzer.cs` - Validates collection-related documentation
+- `DocumentationTextAnalyzer.cs` - Analyzes documentation text content
+
+### CommentSense.CodeFixes
+
+Provides automatic code fixes for diagnostics reported by the analyzers. All code fixes support **Fix All** in document, project, or solution scope.
+
+**Key Components:**
+
+- `CodeFixProviderBase.cs` - Base class for all code fix providers
+
+**Logic Directory:**
+
+The `Logic/` directory contains specialized code fix providers:
+
+- `ContentGenerationCodeFixProvider.cs` - Generates missing documentation tags with placeholders
+- `DocumentationSynchronizationCodeFixProvider.cs` - Synchronizes documentation with code signatures
+- `DocumentationSynchronizationLogic.cs` - Core logic for synchronization operations
+- `RedundancyRemovalCodeFixProvider.cs` - Removes stray and duplicate tags
+- `OrderSynchronizationCodeFixProvider.cs` - Reorders parameter tags to match signatures
+- `ExceptionResolutionCodeFixProvider.cs` - Adds missing exception documentation
+- `GhostReferenceCodeFixProvider.cs` - Wraps parameter names in `<paramref/>` tags
+- `KeywordToSeeLangwordCodeFixProvider.cs` - Converts keywords to `<see langword="..."/>`
+- `LowQualityDocumentationCodeFixProvider.cs` - Fixes capitalization and punctuation
+- `TagOrderCodeFixProvider.cs` - Reorders top-level documentation tags
+
+### CommentSense.Core
+
+Contains shared utilities, constants, and configuration logic used across the project.
+
+**Key Components:**
+
+- `CommentSenseDiagnosticIds.cs` - Defines all diagnostic and suppression IDs
+- `Utilities/` - Shared utility classes and extension methods
+
+## Diagnostic Rules
+
+CommentSense defines diagnostics with IDs from CSENSE000 to CSENSE025:
+
+### Project Configuration
+- **CSENSE000** - Disabled documentation parsing warning
+
+### General Documentation
+- **CSENSE001** - Missing XML documentation
+- **CSENSE007** - Unresolved `cref` attribute
+- **CSENSE016** - Low quality documentation
+- **CSENSE018** - Missing explicit `<inheritdoc/>` for overriding members
+- **CSENSE019** - Use `<see langword="..."/>` for keywords
+- **CSENSE022** - Stray or duplicate `<summary>` tags
+- **CSENSE024** - Incorrect tag order
+- **CSENSE025** - Inaccessible `cref` reference
+
+### Parameters & Type Parameters
+- **CSENSE002/004** - Missing parameter/type parameter documentation
+- **CSENSE003/005** - Stray parameter/type parameter tags
+- **CSENSE008/010** - Parameter/type parameter order mismatch
+- **CSENSE009/011** - Duplicate parameter/type parameter tags
+- **CSENSE020/021** - Ghost parameter/type parameter references
+
+### Return Values
+- **CSENSE006** - Missing `<returns>` tag
+- **CSENSE013** - Stray `<returns>` tag
+
+### Exceptions
+- **CSENSE012** - Missing exception documentation
+- **CSENSE017** - Invalid exception type
+- **CSENSE023** - Stray exception documentation
+
+### Properties
+- **CSENSE014** - Missing `<value>` tag
+- **CSENSE015** - Stray `<value>` tag
+
+## Suppression System
+
+CommentSense automatically suppresses overlapping C# compiler diagnostics to prevent duplicate warnings:
+
+- **CS1591** - Missing XML comment (suppressed by CSENSESUP001)
+- **CS1573** - Missing param tag (suppressed by CSENSESUP002)
+- **CS1572** - Stray param tag (suppressed by CSENSESUP003)
+- **CS1571** - Duplicate param tag (suppressed by CSENSESUP004)
+- **CS1584/1658** - Invalid cref syntax (suppressed by CSENSESUP005/007)
+- **CS1574** - Unresolved cref (suppressed by CSENSESUP006)
+
+## Extension Points
+
+When adding new analyzers or code fixes:
+
+1. **New Analyzer** - Create a class in `Logic/` directory and register in `CommentSenseAnalyzer`
+2. **New Rule** - Add diagnostic ID to `CommentSenseDiagnosticIds` and define rule in `CommentSenseRules`
+3. **New Code Fix** - Create provider in `CodeFixes/Logic/` and register with appropriate diagnostic IDs
+4. **Configuration Option** - Add to analyzer configuration parsing and document in `.editorconfig`
+
+<Note>
+All analyzers should follow the Roslyn analyzer guidelines and avoid unnecessary allocations for optimal performance.
+</Note>

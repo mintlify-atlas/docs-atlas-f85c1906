@@ -1,0 +1,165 @@
+---
+title: Configuration Overview
+description: Configure CommentSense behavior using .editorconfig files to customize documentation analysis
+---
+
+CommentSense is configured through `.editorconfig` files in your project. This allows you to customize the analyzer's behavior at the solution, project, or even file level.
+
+## How Configuration Works
+
+CommentSense uses the standard `.editorconfig` format to read configuration options. All CommentSense options are prefixed with `comment_sense.` and should be placed under the `[*.cs]` section to apply to all C# files.
+
+### Basic .editorconfig Structure
+
+```ini
+root = true
+
+[*.cs]
+# CommentSense configuration options go here
+comment_sense.visibility_level = protected
+comment_sense.require_ending_punctuation = true
+```
+
+<Info>
+The `.editorconfig` file should be placed in your project root or solution directory. Options cascade from parent directories, with more specific (closer) files taking precedence.
+</Info>
+
+## Configuration Scope
+
+You can configure CommentSense at different levels:
+
+- **Solution-level**: Place `.editorconfig` in your solution root
+- **Project-level**: Place `.editorconfig` in individual project directories
+- **File-level**: Use glob patterns to target specific files or directories
+
+### Example: Different Rules for Different Directories
+
+```ini
+root = true
+
+# Default for all C# files
+[*.cs]
+comment_sense.visibility_level = protected
+comment_sense.require_ending_punctuation = true
+
+# Stricter rules for public API
+[src/PublicApi/**/*.cs]
+comment_sense.visibility_level = public
+comment_sense.min_summary_length = 20
+comment_sense.require_capitalization = true
+
+# Relaxed rules for internal utilities
+[src/Internal/**/*.cs]
+comment_sense.visibility_level = internal
+comment_sense.exclude_constants = true
+```
+
+## Common Configuration Patterns
+
+### Minimal Configuration (Defaults)
+
+By default, CommentSense uses sensible defaults. You don't need any configuration to get started:
+
+```ini
+[*.cs]
+# These are the default values - no configuration needed
+# comment_sense.visibility_level = protected
+# comment_sense.allow_implicit_inheritdoc = true
+# comment_sense.require_ending_punctuation = false
+# comment_sense.require_capitalization = false
+```
+
+### Strict Documentation Standards
+
+For projects with high documentation standards:
+
+```ini
+[*.cs]
+comment_sense.visibility_level = public
+comment_sense.min_summary_length = 15
+comment_sense.require_ending_punctuation = true
+comment_sense.require_capitalization = true
+comment_sense.similarity_threshold = 0.8
+comment_sense.allow_implicit_inheritdoc = false
+comment_sense.low_quality_terms = TODO, TBD, FixMe, None, N/A
+```
+
+### Relaxed for Internal Code
+
+For internal projects or utilities:
+
+```ini
+[*.cs]
+comment_sense.visibility_level = internal
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+comment_sense.require_ending_punctuation = false
+```
+
+## Configuration Options Reference
+
+CommentSense provides configuration options in the following categories:
+
+<CardGroup cols={2}>
+  <Card title="Visibility Levels" icon="eye" href="/configuration/visibility-levels">
+    Control which members are analyzed based on their accessibility
+  </Card>
+  
+  <Card title="Quality Checks" icon="check" href="/configuration/quality-checks">
+    Configure low quality detection, langwords, ghost references, and tag ordering
+  </Card>
+  
+  <Card title="Exception Documentation" icon="triangle-exclamation" href="/configuration/exceptions">
+    Configure which exceptions to document and exception scanning behavior
+  </Card>
+  
+  <Card title="Advanced Options" icon="sliders" href="/configuration/advanced">
+    Conditional suppression, constant/enum exclusions, and implicit inheritdoc
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+<Warning>
+CommentSense requires XML documentation generation to be enabled in your project. Add this to your `.csproj` file:
+
+```xml
+<PropertyGroup>
+  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+</PropertyGroup>
+```
+
+Without this setting, CommentSense will report diagnostic **CSENSE000** and will not analyze your code.
+</Warning>
+
+## Validation and Testing
+
+After configuring CommentSense:
+
+1. **Rebuild your project** to ensure the analyzer picks up the new settings
+2. **Check the Error List** in Visual Studio to see active diagnostics
+3. **Test with sample code** to verify the configuration behaves as expected
+
+<Note>
+Configuration changes are applied immediately when the `.editorconfig` file is saved, but you may need to reload files or rebuild to see all changes reflected in the IDE.
+</Note>
+
+## Next Steps
+
+<Steps>
+  <Step title="Set Visibility Level">
+    Configure which members should be analyzed based on [visibility levels](/configuration/visibility-levels)
+  </Step>
+  
+  <Step title="Enable Quality Checks">
+    Set up [quality checks](/configuration/quality-checks) for documentation standards
+  </Step>
+  
+  <Step title="Configure Exceptions">
+    Customize [exception documentation](/configuration/exceptions) requirements
+  </Step>
+  
+  <Step title="Fine-tune Advanced Options">
+    Explore [advanced configuration](/configuration/advanced) for edge cases
+  </Step>
+</Steps>

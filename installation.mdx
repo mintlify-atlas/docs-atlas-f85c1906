@@ -1,0 +1,221 @@
+---
+title: Installation
+description: Learn how to install CommentSense in your C# project using NuGet and configure XML documentation generation.
+---
+
+## Installing CommentSense
+
+CommentSense is distributed as a NuGet package that includes both analyzers and code fix providers. Choose your preferred installation method below.
+
+### Using .NET CLI
+
+<CodeGroup>
+```bash dotnet CLI
+dotnet add package CommentSense
+```
+
+```powershell Package Manager Console
+Install-Package CommentSense
+```
+
+```xml PackageReference
+<PackageReference Include="CommentSense" Version="*" />
+```
+</CodeGroup>
+
+<Note>
+  Replace `*` with a specific version number in the PackageReference example, or use `Version="*"` to always get the latest version.
+</Note>
+
+### For Multiple Projects
+
+If you have a solution with multiple projects, you can install CommentSense in all projects at once using Directory.Build.props:
+
+<Steps>
+  <Step title="Create Directory.Build.props">
+    Create a `Directory.Build.props` file in your solution root directory.
+  </Step>
+  
+  <Step title="Add PackageReference">
+    Add the following content:
+    
+    ```xml Directory.Build.props
+    <Project>
+      <ItemGroup>
+        <PackageReference Include="CommentSense" Version="*" />
+      </ItemGroup>
+    </Project>
+    ```
+  </Step>
+  
+  <Step title="Build Your Solution">
+    All projects in your solution will now automatically reference CommentSense.
+  </Step>
+</Steps>
+
+<Tip>
+  Using `Directory.Build.props` ensures consistent analyzer versions across your entire solution and simplifies maintenance.
+</Tip>
+
+## Enabling XML Documentation
+
+CommentSense requires XML documentation generation to be enabled in your project. Without this, you'll see the **CSENSE000** warning.
+
+### Enable for a Single Project
+
+Edit your `.csproj` file and add the following property:
+
+```xml YourProject.csproj
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  
+  <!-- Your existing content -->
+</Project>
+```
+
+### Enable for All Projects
+
+Add this to your `Directory.Build.props` file:
+
+```xml Directory.Build.props
+<Project>
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CommentSense" Version="*" />
+  </ItemGroup>
+</Project>
+```
+
+<Warning>
+  **CSENSE000** will be reported if `GenerateDocumentationFile` is not set to `true`. CommentSense relies on the compiler's documentation parsing to analyze your code.
+</Warning>
+
+## Verifying Installation
+
+After installation, verify that CommentSense is working correctly:
+
+<Steps>
+  <Step title="Build Your Project">
+    Build your project to ensure the analyzer is loaded:
+    
+    ```bash
+    dotnet build
+    ```
+  </Step>
+  
+  <Step title="Check for CSENSE000">
+    If you haven't enabled XML documentation yet, you should see a **CSENSE000** warning indicating that documentation parsing is disabled.
+  </Step>
+  
+  <Step title="Enable Documentation Generation">
+    Add `<GenerateDocumentationFile>true</GenerateDocumentationFile>` to your project.
+  </Step>
+  
+  <Step title="Rebuild and See Diagnostics">
+    Rebuild your project. You should now see CommentSense diagnostics for any undocumented public members.
+  </Step>
+</Steps>
+
+## IDE Integration
+
+CommentSense works seamlessly with popular C# development environments:
+
+### Visual Studio
+
+- Diagnostics appear in the **Error List** window
+- Code fixes are available via the light bulb icon (Ctrl+.) or screwdriver icon
+- Supports **Fix All** in Document, Project, or Solution scope
+- Real-time analysis as you type
+
+### Visual Studio Code
+
+When using the C# Dev Kit or C# extension:
+
+- Diagnostics appear as squiggles in the editor
+- Code fixes available via Quick Fix (Ctrl+. or Cmd+.)
+- Diagnostics shown in the **Problems** panel
+
+### JetBrains Rider
+
+- Diagnostics appear in the **Errors in Solution** window
+- Code fixes available via Alt+Enter
+- Supports batch code fixes
+
+<Info>
+  CommentSense is a standard Roslyn analyzer and works with any IDE that supports .NET analyzers.
+</Info>
+
+## Troubleshooting
+
+### CommentSense Not Showing Diagnostics
+
+<AccordionGroup>
+  <Accordion title="Verify XML documentation is enabled">
+    Ensure `<GenerateDocumentationFile>true</GenerateDocumentationFile>` is set in your `.csproj` file. If this is missing, you'll only see **CSENSE000**.
+  </Accordion>
+  
+  <Accordion title="Check analyzer is installed">
+    Run `dotnet list package` to verify CommentSense appears in your package references.
+  </Accordion>
+  
+  <Accordion title="Clean and rebuild">
+    Sometimes the analyzer cache needs to be cleared:
+    
+    ```bash
+    dotnet clean
+    dotnet build
+    ```
+  </Accordion>
+  
+  <Accordion title="Restart your IDE">
+    If using Visual Studio or Rider, restart the IDE to ensure analyzers are reloaded.
+  </Accordion>
+  
+  <Accordion title="Check visibility settings">
+    By default, CommentSense analyzes `public` and `protected` members. If you want to analyze `internal` or `private` members, configure `comment_sense.visibility_level` in `.editorconfig`.
+  </Accordion>
+</AccordionGroup>
+
+### Build Performance Impact
+
+CommentSense is designed to be performant, but if you experience build slowdowns:
+
+<Tip>
+  Consider adjusting the visibility level to reduce the number of analyzed members, or exclude constants and enum members using `.editorconfig` options.
+</Tip>
+
+## Uninstalling CommentSense
+
+To remove CommentSense from your project:
+
+<CodeGroup>
+```bash dotnet CLI
+dotnet remove package CommentSense
+```
+
+```powershell Package Manager Console
+Uninstall-Package CommentSense
+```
+
+```xml Remove from .csproj
+<!-- Delete this line from your .csproj -->
+<PackageReference Include="CommentSense" Version="*" />
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get from installation to your first working example
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Customize CommentSense behavior via .editorconfig
+  </Card>
+</CardGroup>

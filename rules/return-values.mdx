@@ -1,0 +1,221 @@
+---
+title: Return Value Documentation Rules
+description: Rules for documenting method return values and property values
+---
+
+These rules ensure that return values and property values are properly documented.
+
+## CSENSE006 - Missing Return Value Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (generates `<returns>` placeholder)
+
+### Description
+
+Requires a `<returns>` tag for members that return a value (i.e., non-`void`, non-`Task`, non-`ValueTask`).
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE006">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets a value.</summary>
+    public int GetValue() // CSENSE006
+    {
+        return 42;
+    }
+
+    /// <summary>Processes data asynchronously.</summary>
+    public Task<int> ProcessAsync() // CSENSE006
+    {
+        return Task.FromResult(42);
+    }
+
+    /// <summary>Adds two numbers.</summary>
+    /// <param name="a">The first number.</param>
+    /// <param name="b">The second number.</param>
+    public static int operator +(MyClass a, MyClass b) // CSENSE006
+    {
+        return 0;
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Gets a value.</summary>
+    /// <returns>The integer value 42.</returns>
+    public int GetValue()
+    {
+        return 42;
+    }
+
+    /// <summary>Processes data asynchronously.</summary>
+    /// <returns>A task representing the asynchronous operation with the result.</returns>
+    public Task<int> ProcessAsync()
+    {
+        return Task.FromResult(42);
+    }
+
+    /// <summary>Performs addition.</summary>
+    /// <returns>The sum of the two values.</returns>
+    public static int operator +(MyClass a, MyClass b)
+    {
+        return 0;
+    }
+}
+```
+</Accordion>
+
+### Special cases
+
+<Accordion title="Methods that don't require <returns>">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Performs an action.</summary>
+    public void DoSomething() // No CSENSE006 - void method
+    {
+    }
+
+    /// <summary>Performs an async action.</summary>
+    public async Task DoSomethingAsync() // No CSENSE006 - non-generic Task
+    {
+        await Task.Delay(100);
+    }
+
+    /// <summary>Performs an async action.</summary>
+    public async ValueTask DoSomethingElseAsync() // No CSENSE006 - non-generic ValueTask
+    {
+        await Task.Delay(100);
+    }
+}
+```
+</Accordion>
+
+<Warning>
+Note that non-generic `Task` and `ValueTask` are treated as "void-like" and don't require `<returns>` tags. Only generic variants like `Task<T>` and `ValueTask<T>` require documentation of the return value.
+</Warning>
+
+---
+
+## CSENSE013 - Stray Return Value Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes stray tags)
+
+### Description
+
+Flags stray or duplicate `<returns>` tags on:
+- Members that do not produce a documented return value (such as `void` methods)
+- Properties and indexers (which should use `<value>` instead)
+- Constructors
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE013">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Performs an action.</summary>
+    /// <returns>Nothing.</returns> // CSENSE013 - void method
+    public void DoSomething()
+    {
+    }
+
+    /// <summary>Gets or sets a value.</summary>
+    /// <value>The property value.</value>
+    /// <returns>The property value.</returns> // CSENSE013 - use <value> for properties
+    public int MyProperty { get; set; }
+
+    /// <summary>Initializes a new instance.</summary>
+    /// <returns>A new instance.</returns> // CSENSE013 - constructors don't return values
+    public MyClass()
+    {
+    }
+
+    /// <summary>Gets a value.</summary>
+    /// <returns>First description.</returns>
+    /// <returns>Second description.</returns> // CSENSE013 - duplicate
+    public int GetValue()
+    {
+        return 42;
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Performs an action.</summary>
+    public void DoSomething()
+    {
+    }
+
+    /// <summary>Gets or sets a value.</summary>
+    /// <value>The property value.</value>
+    public int MyProperty { get; set; }
+
+    /// <summary>Initializes a new instance.</summary>
+    public MyClass()
+    {
+    }
+
+    /// <summary>Gets a value.</summary>
+    /// <returns>The integer value 42.</returns>
+    public int GetValue()
+    {
+        return 42;
+    }
+}
+```
+</Accordion>
+
+### Special cases
+
+<Accordion title="Async void methods">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>An async event handler.</summary>
+    /// <returns>A task.</returns> // CSENSE013 - async void is still void
+    public async void HandleEventAsync()
+    {
+        await Task.Delay(100);
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Task methods without generic parameter">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Performs an async operation.</summary>
+    /// <returns>A task.</returns> // No CSENSE013 - Task is allowed to have <returns>
+    public Task DoSomethingAsync()
+    {
+        return Task.CompletedTask;
+    }
+}
+```
+
+<Warning>
+While non-generic `Task` and `ValueTask` don't *require* a `<returns>` tag (no CSENSE006), they can optionally have one without triggering CSENSE013.
+</Warning>
+</Accordion>

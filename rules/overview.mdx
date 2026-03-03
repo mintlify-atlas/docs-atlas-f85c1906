@@ -1,0 +1,193 @@
+---
+title: Rules Overview
+description: Complete reference of all CommentSense analyzer rules organized by category
+---
+
+CommentSense provides 26 diagnostic rules to ensure your C# code is properly documented. All rules are enabled by default except CSENSE014 (missing value documentation for properties).
+
+## Rule Categories
+
+Rules are organized into the following categories:
+
+- **[General Documentation](/rules/general-documentation)** - Core documentation requirements and quality checks
+- **[Parameters](/rules/parameters)** - Parameter and type parameter documentation
+- **[Return Values](/rules/return-values)** - Return value and property value documentation
+- **[Exceptions](/rules/exceptions)** - Exception documentation
+- **[Properties](/rules/properties)** - Property-specific documentation
+
+## All Rules
+
+| Rule ID | Category | Severity | Description | Code Fix |
+|---------|----------|----------|-------------|----------|
+| [CSENSE000](#csense000) | Configuration | Warning | XML documentation parsing is disabled | No |
+| [CSENSE001](#csense001) | General | Warning | Public API is missing documentation | Yes |
+| [CSENSE002](#csense002) | Parameters | Warning | Missing parameter documentation | Yes |
+| [CSENSE003](#csense003) | Parameters | Warning | Stray parameter documentation | Yes |
+| [CSENSE004](#csense004) | Parameters | Warning | Missing type parameter documentation | Yes |
+| [CSENSE005](#csense005) | Parameters | Warning | Stray type parameter documentation | Yes |
+| [CSENSE006](#csense006) | Return Values | Warning | Missing return value documentation | Yes |
+| [CSENSE007](#csense007) | General | Warning | Invalid XML documentation reference (cref) | No |
+| [CSENSE008](#csense008) | Parameters | Warning | Parameter documentation order mismatch | Yes |
+| [CSENSE009](#csense009) | Parameters | Warning | Duplicate parameter documentation | Yes |
+| [CSENSE010](#csense010) | Parameters | Warning | Type parameter documentation order mismatch | Yes |
+| [CSENSE011](#csense011) | Parameters | Warning | Duplicate type parameter documentation | Yes |
+| [CSENSE012](#csense012) | Exceptions | Warning | Missing exception documentation | Yes |
+| [CSENSE013](#csense013) | Return Values | Warning | Stray return value documentation | Yes |
+| [CSENSE014](#csense014) | Properties | Disabled | Missing value documentation | Yes |
+| [CSENSE015](#csense015) | Properties | Warning | Stray value documentation | Yes |
+| [CSENSE016](#csense016) | General | Warning | Low-quality documentation | Yes |
+| [CSENSE017](#csense017) | Exceptions | Warning | Invalid exception type | No |
+| [CSENSE018](#csense018) | General | Warning | Missing documentation for inheriting member | Yes |
+| [CSENSE019](#csense019) | General | Warning | Use langword for keywords | Yes |
+| [CSENSE020](#csense020) | Parameters | Warning | Ghost parameter reference in documentation | Yes |
+| [CSENSE021](#csense021) | Parameters | Warning | Ghost type parameter reference in documentation | Yes |
+| [CSENSE022](#csense022) | General | Warning | Stray summary documentation | Yes |
+| [CSENSE023](#csense023) | Exceptions | Warning | Stray exception documentation | Yes |
+| [CSENSE024](#csense024) | General | Warning | Documentation tag order mismatch | Yes |
+| [CSENSE025](#csense025) | General | Warning | Inaccessible cref reference | No |
+
+## Quick Reference
+
+### CSENSE000
+**XML documentation parsing is disabled**
+
+Triggered when your project doesn't have `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the `.csproj` file. CommentSense requires XML documentation parsing to be enabled.
+
+### CSENSE001
+**Public API is missing documentation**
+
+Triggered when a public-facing member lacks XML documentation such as `<summary>`, `<inheritdoc />`, or other content tags.
+
+**Configuration:** Use `comment_sense.visibility_level` to control which members are analyzed.
+
+### CSENSE002
+**Missing parameter documentation**
+
+Triggered when a method parameter is not documented with a `<param>` tag.
+
+### CSENSE003
+**Stray parameter documentation**
+
+Triggered when a `<param>` tag refers to a non-existent parameter or is nested within another tag.
+
+### CSENSE004
+**Missing type parameter documentation**
+
+Triggered when a generic type parameter is not documented with a `<typeparam>` tag.
+
+### CSENSE005
+**Stray type parameter documentation**
+
+Triggered when a `<typeparam>` tag refers to a non-existent type parameter or is nested within another tag.
+
+### CSENSE006
+**Missing return value documentation**
+
+Triggered when a method returns a value (non-`void`, non-`Task`, non-`ValueTask`) without a `<returns>` tag.
+
+### CSENSE007
+**Invalid XML documentation reference**
+
+Triggered when a `cref` attribute points to a symbol that cannot be resolved.
+
+### CSENSE008
+**Parameter documentation order mismatch**
+
+Triggered when `<param>` tags don't appear in the same order as the method signature.
+
+### CSENSE009
+**Duplicate parameter documentation**
+
+Triggered when the same parameter has multiple `<param>` tags.
+
+### CSENSE010
+**Type parameter documentation order mismatch**
+
+Triggered when `<typeparam>` tags don't match the order in the type declaration.
+
+### CSENSE011
+**Duplicate type parameter documentation**
+
+Triggered when the same type parameter has multiple `<typeparam>` tags.
+
+### CSENSE012
+**Missing exception documentation**
+
+Triggered when a method throws an exception that isn't documented with an `<exception>` tag.
+
+**Configuration:** Use `comment_sense.ignored_exceptions`, `comment_sense.ignore_system_exceptions`, or `comment_sense.scan_called_methods_for_exceptions`.
+
+### CSENSE013
+**Stray return value documentation**
+
+Triggered when a `<returns>` tag appears on a `void` method, constructor, or property.
+
+### CSENSE014
+**Missing value documentation** (Disabled by default)
+
+Triggered when a property lacks a `<value>` tag.
+
+### CSENSE015
+**Stray value documentation**
+
+Triggered when a `<value>` tag appears on a non-property member.
+
+### CSENSE016
+**Low-quality documentation**
+
+Triggered when documentation is empty, too short, lacks punctuation, isn't capitalized, or just repeats the member name.
+
+**Configuration:** Use `comment_sense.low_quality_terms`, `comment_sense.min_summary_length`, `comment_sense.require_ending_punctuation`, `comment_sense.require_capitalization`, or `comment_sense.similarity_threshold`.
+
+### CSENSE017
+**Invalid exception type**
+
+Triggered when a `cref` in an `<exception>` tag doesn't point to an Exception type.
+
+### CSENSE018
+**Missing documentation for inheriting member**
+
+Triggered when `comment_sense.allow_implicit_inheritdoc = false` and an overriding/implementing member has no explicit documentation.
+
+### CSENSE019
+**Use langword for keywords**
+
+Triggered when C# keywords like `true`, `false`, `null`, or `void` appear as plain text instead of `<see langword="..." />`.
+
+**Configuration:** Use `comment_sense.langwords` to customize the keyword list.
+
+### CSENSE020
+**Ghost parameter reference**
+
+Triggered when a parameter name appears in documentation text without a `<paramref />` tag.
+
+**Configuration:** Use `comment_sense.ghost_references.mode` (safe, strict, or off).
+
+### CSENSE021
+**Ghost type parameter reference**
+
+Triggered when a type parameter name appears in documentation text without a `<typeparamref />` tag.
+
+**Configuration:** Use `comment_sense.ghost_references.mode` (safe, strict, or off).
+
+### CSENSE022
+**Stray summary documentation**
+
+Triggered when `<summary>` tags are nested within other tags or duplicated.
+
+### CSENSE023
+**Stray exception documentation**
+
+Triggered when `<exception>` tags are nested within other tags or duplicated for the same exception type.
+
+### CSENSE024
+**Documentation tag order mismatch**
+
+Triggered when top-level documentation tags don't follow the standard order.
+
+**Configuration:** Use `comment_sense.tag_order` to customize the expected order.
+
+### CSENSE025
+**Inaccessible cref reference**
+
+Triggered when a `cref` attribute points to a symbol with lower accessibility than the documented member (e.g., a public member referencing an internal type).

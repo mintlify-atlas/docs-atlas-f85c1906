@@ -1,0 +1,239 @@
+---
+title: CSENSE002-005 - Parameter and Type Parameter Rules
+description: Parameter and type parameter documentation validation
+---
+
+# CSENSE002-005: Parameter and Type Parameter Rules
+
+These diagnostics ensure that parameter and type parameter documentation is accurate, complete, and synchronized with the actual method or type signature.
+
+## CSENSE002: Missing Parameter Documentation
+
+<ParamField query="ID" type="string" default="CSENSE002">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+All parameters of a publicly accessible member should be documented. This diagnostic is reported when a parameter exists in the method signature but is not documented with a `<param>` tag.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Calculates the total price.
+/// </summary>
+/// <param name="quantity">The quantity of items.</param>
+public decimal CalculateTotal(int quantity, decimal unitPrice)
+// CSENSE002: The parameter 'unitPrice' is missing documentation
+{
+    return quantity * unitPrice;
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Calculates the total price.
+/// </summary>
+/// <param name="quantity">The quantity of items.</param>
+/// <param name="unitPrice">The price per unit.</param>
+public decimal CalculateTotal(int quantity, decimal unitPrice)
+{
+    return quantity * unitPrice;
+}
+```
+
+---
+
+## CSENSE003: Stray Parameter Documentation
+
+<ParamField query="ID" type="string" default="CSENSE003">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should not contain `<param>` tags for parameters that do not exist in the signature. This often occurs after refactoring when a parameter is renamed or removed but the documentation is not updated.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Processes a user request.
+/// </summary>
+/// <param name="userId">The user identifier.</param>
+public void ProcessRequest(string username)
+// CSENSE003: The parameter 'userId' is misplaced or does not exist in the signature
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Processes a user request.
+/// </summary>
+/// <param name="username">The username.</param>
+public void ProcessRequest(string username)
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE004: Missing Type Parameter Documentation
+
+<ParamField query="ID" type="string" default="CSENSE004">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+All type parameters of a publicly accessible member should be documented. This diagnostic is reported when a type parameter exists but is not documented with a `<typeparam>` tag.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// Converts an item from one type to another.
+/// </summary>
+/// <typeparam name="TInput">The input type.</typeparam>
+public TOutput Convert<TInput, TOutput>(TInput value)
+// CSENSE004: The type parameter 'TOutput' is missing documentation
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// Converts an item from one type to another.
+/// </summary>
+/// <typeparam name="TInput">The input type.</typeparam>
+/// <typeparam name="TOutput">The output type.</typeparam>
+public TOutput Convert<TInput, TOutput>(TInput value)
+{
+    // Implementation
+}
+```
+
+---
+
+## CSENSE005: Stray Type Parameter Documentation
+
+<ParamField query="ID" type="string" default="CSENSE005">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+### Description
+
+Documentation should not contain `<typeparam>` tags for type parameters that do not exist in the signature. This often occurs after refactoring when a type parameter is renamed or removed.
+
+### Examples
+
+#### Violation
+
+```csharp
+/// <summary>
+/// A generic repository.
+/// </summary>
+/// <typeparam name="T">The entity type.</typeparam>
+/// <typeparam name="TKey">The key type.</typeparam>
+public class Repository<TEntity>
+// CSENSE005: The type parameter 'T' is misplaced or does not exist in the signature
+// CSENSE005: The type parameter 'TKey' is misplaced or does not exist in the signature
+{
+    // Implementation
+}
+```
+
+#### Fixed
+
+```csharp
+/// <summary>
+/// A generic repository.
+/// </summary>
+/// <typeparam name="TEntity">The entity type.</typeparam>
+public class Repository<TEntity>
+{
+    // Implementation
+}
+```
+
+## Configuration
+
+These rules respect the `visibility_level` setting to determine which members are analyzed:
+
+```ini
+comment_sense.visibility_level = protected
+```
+
+See [Configuration Options Reference](/api/configuration/options-reference) for more details.
+
+## Related Rules
+
+- [CSENSE008](/api/diagnostics/csense006-013#csense008-parameter-order-mismatch) - Parameter order mismatch
+- [CSENSE009](/api/diagnostics/csense006-013#csense009-duplicate-parameter-documentation) - Duplicate parameter documentation
+- [CSENSE010](/api/diagnostics/csense006-013#csense010-type-parameter-order-mismatch) - Type parameter order mismatch
+- [CSENSE011](/api/diagnostics/csense006-013#csense011-duplicate-type-parameter-documentation) - Duplicate type parameter documentation

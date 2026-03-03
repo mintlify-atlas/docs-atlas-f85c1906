@@ -1,0 +1,132 @@
+---
+title: CSENSE001 - Missing Documentation
+description: Public API is missing documentation
+---
+
+# CSENSE001: Missing Documentation
+
+<ParamField query="ID" type="string" default="CSENSE001">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+## Description
+
+Publicly accessible APIs should be documented to ensure maintainability and clarity. This diagnostic is reported when a symbol matching the configured visibility level is missing valid XML documentation.
+
+## Why This Rule Exists
+
+Documentation is essential for:
+- Helping other developers understand the purpose and usage of your APIs
+- Enabling IntelliSense tooltips in IDEs
+- Generating API documentation
+- Maintaining long-term code quality
+
+## How to Fix
+
+Add XML documentation comments to the symbol. At minimum, include a `<summary>` tag:
+
+```csharp
+/// <summary>
+/// Describes what this method does.
+/// </summary>
+public void MyMethod() { }
+```
+
+## Examples
+
+### Violation
+
+```csharp
+public class Calculator
+{
+    // CSENSE001: The symbol 'Add' is missing valid documentation
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+
+### Fixed
+
+```csharp
+public class Calculator
+{
+    /// <summary>
+    /// Adds two integers and returns the result.
+    /// </summary>
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+
+### Using inheritdoc
+
+For overridden or implemented members, you can use `<inheritdoc />` to inherit documentation from the base member:
+
+```csharp
+public class BaseClass
+{
+    /// <summary>
+    /// Performs an important operation.
+    /// </summary>
+    public virtual void DoSomething() { }
+}
+
+public class DerivedClass : BaseClass
+{
+    /// <inheritdoc />
+    public override void DoSomething() { }
+}
+```
+
+## Configuration
+
+### Visibility Level
+
+Control which members are analyzed based on their accessibility:
+
+```ini
+comment_sense.visibility_level = protected
+```
+
+Valid values:
+- `public` - Only public members
+- `protected` - Public and protected members (default)
+- `internal` - Public, protected, and internal members
+- `private` - All members including private
+
+### Exclude Constants and Enums
+
+You can exclude constants and enum members from documentation requirements:
+
+```ini
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+```
+
+### Allow Implicit inheritdoc
+
+When enabled, members that override or implement base members without explicit documentation are treated as having implicit `<inheritdoc />`:
+
+```ini
+comment_sense.allow_implicit_inheritdoc = true
+```
+
+## Related Rules
+
+- [CSENSE018](/api/diagnostics/csense014-025#csense018-missing-inheritdoc) - Missing inheritdoc for override/implementation members

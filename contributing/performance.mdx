@@ -1,0 +1,314 @@
+---
+title: Performance Guidelines
+description: Learn how to maintain and benchmark the performance of CommentSense analyzers
+---
+
+Maintaining high performance is critical for Roslyn analyzers. CommentSense must analyze code efficiently to avoid slowing down the development experience in IDEs and during builds.
+
+## Why Performance Matters
+
+Roslyn analyzers run:
+- **In real-time** while developers type in Visual Studio, VS Code, and Rider
+- **During compilation** on every build
+- **In CI/CD pipelines** where performance impacts build times
+
+Poor analyzer performance can:
+- Cause IDE lag and typing delays
+- Slow down build times
+- Increase memory consumption
+- Frustrate developers and reduce adoption
+
+<Note>
+If you modify logic in `src/CommentSense.Analyzers/Logic`, you must run the performance benchmark suite to ensure no regressions.
+</Note>
+
+## Running Benchmarks
+
+CommentSense includes a comprehensive benchmark suite using BenchmarkDotNet.
+
+### Basic Usage
+
+Run all benchmarks:
+
+```bash
+dotnet run -c Release --project benchmarks
+```
+
+### Running Specific Benchmarks
+
+Run specific benchmark classes:
+
+```bash
+dotnet run -c Release --project benchmarks --filter "*AnalyzerBenchmarks*"
+```
+
+Run specific methods:
+
+```bash
+dotnet run -c Release --project benchmarks --filter "*DogfoodBenchmarks.AnalyzeCommentSenseItself*"
+```
+
+<Note>
+Always run benchmarks in **Release** mode (`-c Release`). Debug builds will produce misleading results.
+</Note>
+
+## Benchmark Suite
+
+The `benchmarks/` directory contains several benchmark classes:
+
+### AnalyzerBenchmarks
+
+Core analyzer performance tests that measure the analysis of various code patterns:
+- Documentation validation
+- Parameter analysis
+- Exception detection
+- Quality checks
+
+### DogfoodBenchmarks
+
+Real-world performance tests that analyze the CommentSense codebase itself:
+- Validates performance on actual production code
+- Ensures the analyzer can efficiently analyze complex projects
+- Provides realistic performance metrics
+
+### ParallelBenchmarks
+
+Tests analyzer behavior under parallel compilation:
+- Multiple files analyzed simultaneously
+- Thread safety validation
+- Scalability testing
+
+### PathologicalBenchmarks
+
+Stress tests with extreme edge cases:
+- Very large files
+- Deeply nested structures
+- Extensive documentation
+- Complex generic signatures
+
+### LeakBenchmarks
+
+Memory leak detection:
+- Validates that analyzers don't retain unnecessary references
+- Ensures proper cleanup of resources
+- Monitors memory allocation patterns
+
+## Benchmark Structure
+
+All benchmarks inherit from `BenchmarkBase`:
+
+```csharp
+using BenchmarkDotNet.Attributes;
+using CommentSense.PerformanceTests;
+
+[MemoryDiagnoser]
+public class MyBenchmarks : BenchmarkBase
+{
+    protected override string GetSourceCode()
+    {
+        return """
+            // Your benchmark code here
+            """;
+    }
+
+    [Benchmark]
+    public async Task MyBenchmark()
+    {
+        await RunAnalysisAsync();
+    }
+}
+```
+
+The `[MemoryDiagnoser]` attribute ensures that memory allocations are tracked.
+
+## Performance Best Practices
+
+### Avoid Unnecessary Allocations
+
+<Steps>
+  <Step title="Reuse collections">
+    Use object pooling or reuse collections instead of creating new ones.
+  </Step>
+  
+  <Step title="Use spans and ReadOnlySpan">
+    Prefer `Span<T>` and `ReadOnlySpan<T>` for string and array operations.
+  </Step>
+  
+  <Step title="Cache computed values">
+    Cache expensive computations that don't change during analysis.
+  </Step>
+  
+  <Step title="Use value types judiciously">
+    Consider using structs for small, frequently allocated objects.
+  </Step>
+</Steps>
+
+### Minimize LINQ Usage in Hot Paths
+
+```csharp
+// ❌ Avoid in hot paths (allocates enumerators)
+var count = symbols.Where(s => s.IsPublic).Count();
+
+// ✅ Prefer direct iteration
+var count = 0;
+foreach (var symbol in symbols)
+{
+    if (symbol.IsPublic)
+        count++;
+}
+```
+
+### Use ImmutableArray Efficiently
+
+```csharp
+// ❌ Avoid boxing and extra allocations
+if (array.Any())
+
+// ✅ Use Length property
+if (array.Length > 0)
+
+// ❌ Avoid LINQ on ImmutableArray
+var first = array.FirstOrDefault();
+
+// ✅ Use indexer or IsEmpty
+var first = array.IsEmpty ? default : array[0];
+```
+
+### Register Syntax Node Actions Carefully
+
+```csharp
+// ❌ Don't register for every syntax kind unnecessarily
+context.RegisterSyntaxNodeAction(
+    AnalyzeNode, 
+    SyntaxKind.ClassDeclaration,
+    SyntaxKind.StructDeclaration,
+    SyntaxKind.RecordDeclaration,
+    // ... many more
+);
+
+// ✅ Register once and filter inside
+context.RegisterSyntaxNodeAction(
+    AnalyzeMemberDeclaration,
+    SyntaxKind.ClassDeclaration
+);
+```
+
+### Cache Symbol Information
+
+```csharp
+// ❌ Repeated symbol lookups
+public void Analyze(SyntaxNode node, SemanticModel model)
+{
+    var symbol = model.GetDeclaredSymbol(node);
+    if (symbol?.DeclaredAccessibility == Accessibility.Public)
+    {
+        var symbol2 = model.GetDeclaredSymbol(node); // Duplicate work!
+    }
+}
+
+// ✅ Lookup once and reuse
+public void Analyze(SyntaxNode node, SemanticModel model)
+{
+    var symbol = model.GetDeclaredSymbol(node);
+    if (symbol?.DeclaredAccessibility == Accessibility.Public)
+    {
+        // Use symbol variable
+    }
+}
+```
+
+## Interpreting Benchmark Results
+
+BenchmarkDotNet provides detailed metrics:
+
+### Mean Execution Time
+
+The average time to complete the benchmark. Look for:
+- **< 1ms** - Excellent for simple operations
+- **1-10ms** - Good for complex analysis
+- **> 10ms** - May need optimization for large projects
+
+### Memory Allocations
+
+Total memory allocated during execution:
+- **< 1 KB** - Excellent
+- **1-10 KB** - Acceptable for complex scenarios
+- **> 100 KB** - Investigate and optimize
+
+### Gen 0/1/2 Collections
+
+Garbage collection pressure:
+- **Gen 0** - Short-lived objects (common)
+- **Gen 1** - Medium-lived objects (should be minimal)
+- **Gen 2** - Long-lived objects (should be zero for analyzers)
+
+<Note>
+Gen 2 collections indicate memory retention issues. Analyzers should not hold long-lived references.
+</Note>
+
+## Avoiding Regressions
+
+Before submitting a pull request:
+
+<Steps>
+  <Step title="Run benchmarks">
+    Execute the relevant benchmarks for your changes.
+  </Step>
+  
+  <Step title="Compare results">
+    Compare the results with the baseline (run benchmarks on `main` branch first).
+  </Step>
+  
+  <Step title="Investigate significant changes">
+    If you see >10% performance degradation, investigate and optimize.
+  </Step>
+  
+  <Step title="Document improvements">
+    If you achieved performance improvements, note them in the PR description.
+  </Step>
+</Steps>
+
+### Creating a Baseline
+
+```bash
+# On main branch
+git checkout main
+dotnet run -c Release --project benchmarks --filter "*AnalyzerBenchmarks*"
+
+# Save or note the results
+# Then switch to your branch
+git checkout your-feature-branch
+dotnet run -c Release --project benchmarks --filter "*AnalyzerBenchmarks*"
+
+# Compare the results
+```
+
+## Performance Testing Checklist
+
+Before submitting changes that modify analyzer logic:
+
+- [ ] Run all relevant benchmarks in Release mode
+- [ ] Compare results with baseline from `main` branch
+- [ ] Ensure no significant performance regressions (>10%)
+- [ ] Verify memory allocations haven't increased substantially
+- [ ] Check that Gen 2 collections remain at zero
+- [ ] Run dogfooding benchmarks to test real-world impact
+- [ ] Document any performance improvements in PR
+
+## Continuous Monitoring
+
+The CommentSense project maintains performance metrics over time:
+
+- **CI benchmarks** run on significant changes
+- **Release benchmarks** validate each version
+- **Regression tracking** monitors trends across commits
+
+<Note>
+Performance is a feature. Treat performance regressions as bugs and prioritize fixing them.
+</Note>
+
+## Resources
+
+- [BenchmarkDotNet Documentation](https://benchmarkdotnet.org/)
+- [Roslyn Analyzer Performance Guidelines](https://github.com/dotnet/roslyn/blob/main/docs/analyzers/Analyzer%20Performance.md)
+- [.NET Performance Best Practices](https://learn.microsoft.com/en-us/dotnet/framework/performance/)

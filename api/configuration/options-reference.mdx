@@ -1,0 +1,333 @@
+---
+title: Configuration Options Reference
+description: Complete reference for all CommentSense configuration options
+---
+
+# Configuration Options Reference
+
+CommentSense can be configured using EditorConfig (`.editorconfig`) files. All options are prefixed with `comment_sense.`.
+
+## Visibility and Scope
+
+### visibility_level
+
+<ResponseField name="visibility_level" type="enum" default="protected">
+  Specifies the visibility threshold for members that should be analyzed.
+  
+  **Valid values:**
+  - `public` - Only public members
+  - `protected` - Public and protected members (default)
+  - `internal` - Public, protected, and internal members
+  - `private` - All members including private
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.visibility_level = protected
+```
+
+### exclude_constants
+
+<ResponseField name="exclude_constants" type="boolean" default="false">
+  When enabled, constant fields are excluded from documentation requirements.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.exclude_constants = true
+```
+
+### exclude_enums
+
+<ResponseField name="exclude_enums" type="boolean" default="false">
+  When enabled, enum members are excluded from documentation requirements.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.exclude_enums = true
+```
+
+## Inheritance Documentation
+
+### allow_implicit_inheritdoc
+
+<ResponseField name="allow_implicit_inheritdoc" type="boolean" default="true">
+  When enabled, members that override or implement base members without explicit documentation are treated as having implicit `<inheritdoc />`.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.allow_implicit_inheritdoc = true
+```
+
+## Documentation Quality
+
+### min_summary_length
+
+<ResponseField name="min_summary_length" type="integer" default="0">
+  The minimum required character length for summary documentation. Set to 0 to disable.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.min_summary_length = 15
+```
+
+### require_ending_punctuation
+
+<ResponseField name="require_ending_punctuation" type="boolean" default="false">
+  When enabled, summary documentation must end with punctuation (`.`, `!`, or `?`).
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.require_ending_punctuation = true
+```
+
+### require_capitalization
+
+<ResponseField name="require_capitalization" type="boolean" default="false">
+  When enabled, summary documentation must start with a capital letter.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.require_capitalization = true
+```
+
+### similarity_threshold
+
+<ResponseField name="similarity_threshold" type="double" default="0.0">
+  The threshold (0.0-1.0) for detecting when documentation text is too similar to the member name. Higher values are stricter. Set to 0.0 to disable.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.similarity_threshold = 0.75
+```
+
+### rename_similarity_threshold
+
+<ResponseField name="rename_similarity_threshold" type="double" default="0.5">
+  The threshold (0.0-1.0) used for detecting renamed parameters in ghost reference detection. Values range from 0.0 (lenient) to 1.0 (strict).
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.rename_similarity_threshold = 0.6
+```
+
+### low_quality_terms
+
+<ResponseField name="low_quality_terms" type="string[]" default="[]">
+  A comma-separated list of terms that indicate low-quality documentation (e.g., "TODO", "FIXME"). Documentation containing these terms will trigger CSENSE016.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.low_quality_terms = TODO,FIXME,HACK,XXX,WIP
+```
+
+## Language Keywords
+
+### langwords
+
+<ResponseField name="langwords" type="string[]" default="true,false,null,void">
+  A comma-separated list of C# keywords that should be wrapped in `<see langword="..." />` tags.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.langwords = true,false,null,void,async,await
+```
+
+## Exception Documentation
+
+### ignored_exceptions
+
+<ResponseField name="ignored_exceptions" type="string[]" default="[]">
+  A comma-separated list of exception type names that should be ignored by CSENSE012 (missing exception documentation).
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.ignored_exceptions = NotImplementedException,InvalidOperationException
+```
+
+### ignore_system_exceptions
+
+<ResponseField name="ignore_system_exceptions" type="boolean" default="false">
+  When enabled, all exceptions in the `System` namespace are ignored by CSENSE012.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.ignore_system_exceptions = true
+```
+
+### ignored_exception_namespaces
+
+<ResponseField name="ignored_exception_namespaces" type="string[]" default="[]">
+  A comma-separated list of namespaces whose exceptions should be ignored by CSENSE012.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.ignored_exception_namespaces = MyApp.Internal,ThirdParty.Exceptions
+```
+
+### scan_called_methods_for_exceptions
+
+<ResponseField name="scan_called_methods_for_exceptions" type="boolean" default="false">
+  When enabled, CommentSense will scan methods called within the current method to detect exceptions they might throw. This is an experimental feature.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.scan_called_methods_for_exceptions = false
+```
+
+## Ghost References
+
+### ghost_references.mode
+
+<ResponseField name="ghost_references.mode" type="enum" default="safe">
+  Controls how aggressively CommentSense detects parameter and type parameter names mentioned in documentation without proper `<paramref>` or `<typeparamref>` tags.
+  
+  **Valid values:**
+  - `off` - Ghost reference detection is disabled
+  - `safe` - Only checks complex names (camelCase, PascalCase, underscores, or digits) and ignores all-lowercase words entirely
+  - `strict` - Checks all parameters regardless of casing or length
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.ghost_references.mode = safe
+```
+
+## Documentation Tag Order
+
+### tag_order
+
+<ResponseField name="tag_order" type="string[]" default="inheritdoc,summary,typeparam,param,returns,exception,remarks,example,seealso,permission">
+  A comma-separated list defining the expected order of XML documentation tags. Used by CSENSE024.
+</ResponseField>
+
+**Default order:**
+1. `inheritdoc`
+2. `summary`
+3. `typeparam`
+4. `param`
+5. `returns` / `value` (same priority)
+6. `exception`
+7. `remarks`
+8. `example`
+9. `seealso`
+10. `permission`
+
+**Example:**
+```ini
+comment_sense.tag_order = summary,param,returns,exception,remarks
+```
+
+**Note:** If you specify `returns` but not `value`, they will share the same priority. Similarly, if you specify `value` but not `returns`, they will share the same priority.
+
+## Conditional Suppression
+
+### enable_conditional_suppression
+
+<ResponseField name="enable_conditional_suppression" type="boolean" default="false">
+  When enabled, CommentSense will suppress certain compiler warnings (like CS1591, CS1573, CS1574) that it already handles with its own diagnostics.
+</ResponseField>
+
+**Example:**
+```ini
+comment_sense.enable_conditional_suppression = true
+```
+
+## Complete Example
+
+Here's a comprehensive `.editorconfig` example with commonly used options:
+
+```ini
+root = true
+
+[*.cs]
+# Analyze public and protected members
+comment_sense.visibility_level = protected
+
+# Exclude constants and enums from documentation requirements
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+
+# Quality requirements
+comment_sense.min_summary_length = 15
+comment_sense.require_ending_punctuation = true
+comment_sense.require_capitalization = true
+comment_sense.similarity_threshold = 0.75
+
+# Low-quality term detection
+comment_sense.low_quality_terms = TODO,FIXME,HACK,XXX,WIP,UNDONE
+
+# Keywords that should use langword
+comment_sense.langwords = true,false,null,void,async,await
+
+# Exception handling
+comment_sense.ignored_exceptions = NotImplementedException
+comment_sense.ignore_system_exceptions = false
+
+# Ghost reference detection
+comment_sense.ghost_references.mode = safe
+
+# Inheritance documentation
+comment_sense.allow_implicit_inheritdoc = true
+
+# Tag ordering
+comment_sense.tag_order = inheritdoc,summary,typeparam,param,returns,exception,remarks
+
+# Conditional suppression
+comment_sense.enable_conditional_suppression = true
+```
+
+## Configuration Scope
+
+EditorConfig options can be scoped to specific directories or file patterns:
+
+```ini
+# Global settings
+root = true
+
+# All C# files
+[*.cs]
+comment_sense.visibility_level = protected
+
+# Only public API files
+[src/PublicApi/**/*.cs]
+comment_sense.visibility_level = public
+comment_sense.min_summary_length = 30
+
+# Test files can be less strict
+[tests/**/*.cs]
+comment_sense.visibility_level = public
+comment_sense.exclude_constants = true
+```
+
+## Legacy Options
+
+### analyze_internal (Deprecated)
+
+<ResponseField name="analyze_internal" type="boolean" default="false">
+  **Deprecated:** Use `visibility_level = internal` instead.
+  
+  When enabled, internal members are analyzed in addition to public and protected members.
+</ResponseField>
+
+**Migration:**
+```ini
+# Old way (deprecated)
+comment_sense.analyze_internal = true
+
+# New way
+comment_sense.visibility_level = internal
+```

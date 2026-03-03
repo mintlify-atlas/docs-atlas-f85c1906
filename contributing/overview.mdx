@@ -1,0 +1,93 @@
+---
+title: Contributing Overview
+description: Learn how to contribute to CommentSense, submit pull requests, and follow our development guidelines
+---
+
+Contributions to CommentSense are welcome! This guide explains how to contribute to the project and help improve this Roslyn-based diagnostic analyzer for C#.
+
+## Ways to Contribute
+
+There are several ways you can contribute to CommentSense:
+
+- **Report bugs:** Find an issue and describe the problem you encountered
+- **Fix bugs:** Submit a pull request with a proposed fix
+- **Request features:** Suggest a new feature or improvement
+- **Improve documentation:** Submit a pull request with improved documentation
+
+## Submitting a Pull Request
+
+<Steps>
+  <Step title="Fork the repository">
+    Create your own fork of the CommentSense repository on GitHub.
+  </Step>
+  
+  <Step title="Create a new branch">
+    Create a new branch for your changes with a descriptive name.
+  </Step>
+  
+  <Step title="Make your changes">
+    Implement your changes and write tests if applicable. Ensure all existing tests pass.
+  </Step>
+  
+  <Step title="Commit and push">
+    Commit your changes following the [Pull Request Title Convention](#pull-request-title-convention) and push to your fork.
+  </Step>
+  
+  <Step title="Submit a pull request">
+    Open a pull request to the `main` branch of the CommentSense repository.
+  </Step>
+</Steps>
+
+## Pull Request Title Convention
+
+<Note>
+To maintain a clean and automated changelog, this project requires pull request titles to follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/).
+</Note>
+
+Titles should be formatted as: `<type>: <description>`
+
+### Common Types
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc.)
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools and libraries such as documentation generation
+
+### Examples
+
+```
+feat: add support for record types
+fix: resolve null reference in parameter analyzer
+docs: update configuration examples
+test: add tests for exception documentation
+```
+
+## Development Workflow
+
+Before submitting your pull request:
+
+1. **Run all tests** to ensure your changes don't break existing functionality
+2. **Write new tests** for any new features or bug fixes
+3. **Run benchmarks** if you modified code in `src/CommentSense.Analyzers/Logic`
+4. **Update documentation** if you changed user-facing behavior or configuration options
+
+<Note>
+Ensure all tests pass before submitting a pull request. The CI pipeline will automatically run tests on all pull requests.
+</Note>
+
+## Release Process
+
+This project uses [MinVer](https://github.com/adamralph/minver) for versioning. Versions are automatically determined by Git tags in the format `vMAJOR.MINOR.PATCH`.
+
+To create a new release, use the GitHub UI to create a new "Release", which will automatically create the required Git tag and trigger the deployment workflow.
+
+<Note>
+Only maintainers can create releases. Contributors should focus on submitting pull requests.
+</Note>
+
+## License
+
+By contributing to CommentSense, you agree that your contributions will be licensed under the MIT License.

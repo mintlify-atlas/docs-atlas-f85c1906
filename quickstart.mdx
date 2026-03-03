@@ -1,80 +1,418 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get started with CommentSense in minutes - from installation to seeing your first diagnostic and applying automatic code fixes.
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through installing CommentSense, configuring your project, and experiencing the core features including diagnostics and automatic code fixes.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This quick start assumes you have a C# project using .NET 8.0 or later. CommentSense works with any .NET project that supports Roslyn analyzers.
 </Note>
+
+## Step 1: Install CommentSense
+
+First, add the CommentSense NuGet package to your project:
+
+<CodeGroup>
+```bash dotnet CLI
+dotnet add package CommentSense
+```
+
+```powershell Package Manager Console
+Install-Package CommentSense
+```
+
+```xml PackageReference
+<ItemGroup>
+  <PackageReference Include="CommentSense" Version="*" />
+</ItemGroup>
+```
+</CodeGroup>
+
+## Step 2: Enable XML Documentation
+
+CommentSense requires XML documentation generation to analyze your code. Add this to your `.csproj` file:
+
+```xml YourProject.csproj
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CommentSense" Version="*" />
+  </ItemGroup>
+</Project>
+```
+
+<Warning>
+  If you skip this step, CommentSense will report **CSENSE000** warning and cannot analyze your documentation.
+</Warning>
+
+## Step 3: Create a Sample Class
+
+Let's create a simple C# class to see CommentSense in action. Create a new file called `Calculator.cs`:
+
+```csharp Calculator.cs
+public class Calculator
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    public int Divide(int numerator, int denominator)
+    {
+        if (denominator == 0)
+            throw new ArgumentException("Cannot divide by zero");
+            
+        return numerator / denominator;
+    }
+}
+```
+
+## Step 4: Build and See Diagnostics
+
+Build your project to see CommentSense diagnostics:
+
+```bash
+dotnet build
+```
+
+You should see several warnings:
+
+<Steps>
+  <Step title="CSENSE001: Missing documentation on Calculator class">
+    The public class has no XML documentation.
+  </Step>
+  
+  <Step title="CSENSE001: Missing documentation on Add method">
+    The public method has no XML documentation.
+  </Step>
+  
+  <Step title="CSENSE001: Missing documentation on Divide method">
+    The public method has no XML documentation.
+  </Step>
+</Steps>
+
+<Info>
+  In your IDE (Visual Studio, VS Code, or Rider), you'll see these as squiggles under the member names with light bulb icons offering code fixes.
+</Info>
+
+## Step 5: Apply Automatic Code Fixes
+
+CommentSense provides automatic code fixes for most diagnostics. Let's add documentation to the `Calculator` class:
+
+### Using Visual Studio or Rider
+
+1. Click on the `Calculator` class name
+2. Press **Ctrl+.** (or click the light bulb icon)
+3. Select "Add missing documentation"
+4. The code fix will generate a placeholder `<summary>` tag
+
+### Using VS Code
+
+1. Click on the `Calculator` class name
+2. Press **Ctrl+.** or **Cmd+.** (or click the light bulb)
+3. Select "Add missing documentation"
+
+### Result
+
+The code fix will generate:
+
+```csharp Calculator.cs
+/// <summary>
+/// TODO: Add summary
+/// </summary>
+public class Calculator
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    public int Divide(int numerator, int denominator)
+    {
+        if (denominator == 0)
+            throw new ArgumentException("Cannot divide by zero");
+            
+        return numerator / denominator;
+    }
+}
+```
+
+<Tip>
+  Code fixes support **Fix All** in Document, Project, or Solution scope. Right-click the light bulb and select "Fix All occurrences in..." to apply fixes to multiple members at once.
+</Tip>
+
+## Step 6: Write Meaningful Documentation
+
+Replace the placeholders with meaningful documentation:
+
+```csharp Calculator.cs
+/// <summary>
+/// Provides basic arithmetic operations.
+/// </summary>
+public class Calculator
+{
+    /// <summary>
+    /// Adds two integers and returns the result.
+    /// </summary>
+    /// <param name="a">The first number to add.</param>
+    /// <param name="b">The second number to add.</param>
+    /// <returns>The sum of the two numbers.</returns>
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    /// <summary>
+    /// Divides one integer by another.
+    /// </summary>
+    /// <param name="numerator">The number to be divided.</param>
+    /// <param name="denominator">The number to divide by.</param>
+    /// <returns>The quotient of the division.</returns>
+    /// <exception cref="ArgumentException">Thrown when denominator is zero.</exception>
+    public int Divide(int numerator, int denominator)
+    {
+        if (denominator == 0)
+            throw new ArgumentException("Cannot divide by zero");
+            
+        return numerator / denominator;
+    }
+}
+```
+
+## Step 7: Experience Quality Analysis
+
+CommentSense doesn't just check for missing documentation - it also validates quality. Let's see this in action:
+
+```csharp Example.cs
+public class Example
+{
+    /// <summary>MyProperty</summary>
+    public string MyProperty { get; set; }
+}
+```
+
+This will trigger **CSENSE016** because the documentation just repeats the member name. CommentSense can detect:
+
+- Empty or whitespace-only documentation
+- Documentation that repeats the member name
+- Missing capitalization
+- Missing ending punctuation
+- Low-quality placeholder terms like "TODO" or "TBD"
+
+The automatic code fix can correct capitalization and punctuation:
+
+```csharp Example.cs
+public class Example
+{
+    /// <summary>Gets or sets the property value.</summary>
+    public string MyProperty { get; set; }
+}
+```
+
+## Step 8: See Exception Tracking
+
+Notice how CommentSense detected the `ArgumentException` in the `Divide` method? Let's explore this feature:
+
+```csharp Validator.cs
+/// <summary>
+/// Validates user input.
+/// </summary>
+public class Validator
+{
+    /// <summary>
+    /// Validates that a string is not null or empty.
+    /// </summary>
+    /// <param name="value">The string to validate.</param>
+    public void ValidateNotEmpty(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            throw new ArgumentNullException(nameof(value));
+            
+        ArgumentNullException.ThrowIfNull(value);
+    }
+}
+```
+
+This code will trigger **CSENSE012** for the missing `<exception>` tag. CommentSense scans method bodies for:
+
+- Explicit `throw` statements
+- Guard clause methods like `ArgumentNullException.ThrowIfNull`
+- Optionally, exceptions documented in called methods (when configured)
+
+Apply the code fix to add the missing exception documentation:
+
+```csharp Validator.cs
+/// <summary>
+/// Validates user input.
+/// </summary>
+public class Validator
+{
+    /// <summary>
+    /// Validates that a string is not null or empty.
+    /// </summary>
+    /// <param name="value">The string to validate.</param>
+    /// <exception cref="ArgumentNullException">TODO: Add exception description</exception>
+    public void ValidateNotEmpty(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            throw new ArgumentNullException(nameof(value));
+            
+        ArgumentNullException.ThrowIfNull(value);
+    }
+}
+```
+
+## Step 9: Explore Additional Features
+
+CommentSense includes many more features:
+
+### Parameter Reference Detection (CSENSE020)
+
+```csharp
+/// <summary>
+/// Processes the name parameter.
+/// </summary>
+public void Process(string name) { }
+```
+
+This triggers **CSENSE020** because "name" should be wrapped in `<paramref name="name" />`. The code fix automatically wraps it:
+
+```csharp
+/// <summary>
+/// Processes the <paramref name="name" /> parameter.
+/// </summary>
+public void Process(string name) { }
+```
+
+### Keyword Detection (CSENSE019)
+
+```csharp
+/// <summary>
+/// Returns true if valid, false otherwise.
+/// </summary>
+public bool Validate() { return true; }
+```
+
+This triggers **CSENSE019** because `true` and `false` should use `<see langword="..." />`. The code fix corrects it:
+
+```csharp
+/// <summary>
+/// Returns <see langword="true" /> if valid, <see langword="false" /> otherwise.
+/// </summary>
+public bool Validate() { return true; }
+```
+
+### Tag Ordering (CSENSE024)
+
+```csharp
+/// <returns>The result.</returns>
+/// <summary>Calculates something.</summary>
+/// <param name="x">Input value.</param>
+public int Calculate(int x) { return x; }
+```
+
+This triggers **CSENSE024** because tags are not in the standard order. The code fix reorders them:
+
+```csharp
+/// <summary>Calculates something.</summary>
+/// <param name="x">Input value.</param>
+/// <returns>The result.</returns>
+public int Calculate(int x) { return x; }
+```
+
+## Step 10: Customize with Configuration
+
+Create an `.editorconfig` file in your project root to customize CommentSense behavior:
+
+```ini .editorconfig
+root = true
+
+[*.cs]
+# Analyze all members down to internal visibility
+comment_sense.visibility_level = internal
+
+# Require summaries to be at least 15 characters
+comment_sense.min_summary_length = 15
+
+# Detect documentation similar to member names
+comment_sense.similarity_threshold = 0.8
+
+# Add custom low-quality terms
+comment_sense.low_quality_terms = TODO, TBD, FixMe, WIP
+
+# Exclude constants from documentation requirements
+comment_sense.exclude_constants = true
+```
+
+<Info>
+  See the [Configuration Guide](/configuration) for all available options and detailed explanations.
+</Info>
+
+## Common Workflows
+
+### Fix All Documentation Issues in a File
+
+1. Open a file with multiple CommentSense warnings
+2. Press **Ctrl+.** on any diagnostic
+3. Select "Fix All occurrences in Document"
+4. CommentSense will add placeholder documentation for all members
+5. Replace placeholders with meaningful descriptions
+
+### Fix All Documentation Issues in a Project
+
+1. Right-click any CommentSense diagnostic in the Error List
+2. Select "Fix All occurrences in Project"
+3. Review and update generated placeholders
+
+### Suppress Specific Rules
+
+If you want to disable specific rules, add this to your `.editorconfig`:
+
+```ini .editorconfig
+[*.cs]
+# Disable low-quality documentation checks
+dotnet_diagnostic.CSENSE016.severity = none
+
+# Disable exception documentation requirements
+dotnet_diagnostic.CSENSE012.severity = none
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/configuration/overview">
+    Learn how to customize CommentSense behavior for your project
+  </Card>
+  
+  <Card title="Rules Reference" icon="book" href="/rules/overview">
+    Explore all 26 diagnostic rules and their options
+  </Card>
+  
+  <Card title="Best Practices" icon="star" href="/guides/best-practices">
+    Learn tips and patterns for writing excellent documentation
+  </Card>
+  
+  <Card title="Troubleshooting" icon="wrench" href="/guides/troubleshooting">
+    Solutions to common issues and questions
+  </Card>
+</CardGroup>
+
+## Summary
+
+You've now experienced the core features of CommentSense:
+
+<Check>Installed CommentSense via NuGet</Check>
+<Check>Enabled XML documentation generation</Check>
+<Check>Saw diagnostics for missing and low-quality documentation</Check>
+<Check>Applied automatic code fixes</Check>
+<Check>Experienced quality analysis, exception tracking, and reference detection</Check>
+<Check>Learned how to configure CommentSense via .editorconfig</Check>
+
+CommentSense will now continuously analyze your code as you write, helping you maintain high-quality API documentation across your entire codebase.

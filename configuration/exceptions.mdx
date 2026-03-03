@@ -1,0 +1,316 @@
+---
+title: Exception Documentation Configuration
+description: Configure which exceptions require documentation and how CommentSense scans for thrown exceptions
+---
+
+CommentSense can automatically detect explicitly thrown exceptions in your code and ensure they are documented with `<exception>` tags (diagnostic **CSENSE012**). You can customize which exceptions to ignore and how deeply to scan for exceptions.
+
+## Exception Detection
+
+By default, CommentSense scans method bodies for explicitly thrown exceptions, including:
+
+- Direct `throw` statements: `throw new ArgumentException(...);`
+- Static guard clauses: `ArgumentNullException.ThrowIfNull(parameter);`
+- Static throw helpers: `ThrowHelper.ThrowArgumentException();`
+
+<Info>
+CommentSense only detects exceptions that are **explicitly thrown** in the method body. It does not analyze exceptions thrown by called methods unless configured to do so.
+</Info>
+
+## Ignoring Specific Exceptions
+
+<ParamField path="comment_sense.ignored_exceptions" type="string" default="(empty)">
+  Comma-separated list of exception types (by name or full name) that should be ignored by CSENSE012. Values are case-insensitive.
+  
+  You can specify either the simple name (e.g., `ArgumentNullException`) or the full name (e.g., `System.ArgumentNullException`).
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Ignore common argument validation exceptions
+comment_sense.ignored_exceptions = ArgumentNullException, ArgumentException, ArgumentOutOfRangeException
+```
+
+**Example behavior:**
+
+```csharp
+public void Process(string data)
+{
+    // Not flagged - ArgumentNullException is in ignored_exceptions
+    ArgumentNullException.ThrowIfNull(data);
+    
+    // CSENSE012 triggered - InvalidOperationException not in ignored list
+    if (string.IsNullOrEmpty(data))
+        throw new InvalidOperationException("Data cannot be empty");
+}
+```
+
+**With full names:**
+
+```ini
+[*.cs]
+comment_sense.ignored_exceptions = System.ArgumentNullException, System.ArgumentException
+```
+
+## Ignoring System Exceptions
+
+<ParamField path="comment_sense.ignore_system_exceptions" type="boolean" default="false">
+  When set to `true`, ignores all exceptions in the `System` namespace and its sub-namespaces.
+  
+  This is a broad filter that excludes common framework exceptions like `ArgumentException`, `InvalidOperationException`, `NotSupportedException`, etc.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Ignore all System.* exceptions
+comment_sense.ignore_system_exceptions = true
+```
+
+**Example behavior:**
+
+```csharp
+public void Process(string data)
+{
+    // Not flagged - System.ArgumentNullException ignored
+    ArgumentNullException.ThrowIfNull(data);
+    
+    // Not flagged - System.InvalidOperationException ignored
+    if (string.IsNullOrEmpty(data))
+        throw new InvalidOperationException("Data cannot be empty");
+    
+    // CSENSE012 triggered - CustomException not in System namespace
+    if (!IsValid(data))
+        throw new MyProject.CustomException("Invalid data");
+}
+```
+
+<Warning>
+Setting `ignore_system_exceptions = true` is very broad and may hide important exception documentation. Use `ignored_exceptions` or `ignored_exception_namespaces` for more targeted control.
+</Warning>
+
+## Ignoring Exception Namespaces
+
+<ParamField path="comment_sense.ignored_exception_namespaces" type="string" default="(empty)">
+  Comma-separated list of namespaces. Exceptions in these namespaces (or sub-namespaces) will be ignored. Values are case-insensitive.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Ignore exceptions from internal and data access layers
+comment_sense.ignored_exception_namespaces = MyProject.Internal, System.Data, Microsoft.EntityFrameworkCore
+```
+
+**Example behavior:**
+
+```csharp
+public void Process(string data)
+{
+    // Not flagged - MyProject.Internal.ValidationException ignored
+    if (!IsValid(data))
+        throw new MyProject.Internal.ValidationException();
+    
+    // Not flagged - System.Data.SqlException ignored (System.Data namespace)
+    if (connectionFailed)
+        throw new System.Data.SqlException();
+    
+    // CSENSE012 triggered - MyProject.PublicException not ignored
+    if (criticalError)
+        throw new MyProject.PublicException();
+}
+```
+
+<Note>
+Namespace matching includes sub-namespaces. For example, `System.Data` matches `System.Data.SqlClient.SqlException`.
+</Note>
+
+## Scanning Called Methods for Exceptions
+
+<ParamField path="comment_sense.scan_called_methods_for_exceptions" type="boolean" default="false">
+  When set to `true`, CSENSE012 will also analyze exceptions documented in the XML comments of methods and constructors called within the analyzed method.
+  
+  This provides deeper analysis but can be more aggressive, potentially requiring documentation for exceptions you may not want to expose.
+</ParamField>
+
+**Example configuration:**
+
+```ini
+[*.cs]
+# Enable deep exception scanning
+comment_sense.scan_called_methods_for_exceptions = true
+```
+
+**Example behavior:**
+
+```csharp
+/// <summary>
+/// Helper method that validates data.
+/// </summary>
+/// <exception cref="ValidationException">Thrown when validation fails.</exception>
+private void ValidateData(string data)
+{
+    throw new ValidationException();
+}
+
+// With scan_called_methods_for_exceptions = true:
+public void Process(string data)
+{
+    ValidateData(data);  // CSENSE012 triggered - must document ValidationException
+}
+```
+
+**Required documentation:**
+
+```csharp
+/// <summary>
+/// Processes the data.
+/// </summary>
+/// <param name="data">The data to process.</param>
+/// <exception cref="ValidationException">Thrown when validation fails.</exception>
+public void Process(string data)
+{
+    ValidateData(data);  // OK - ValidationException is documented
+}
+```
+
+<Info>
+This setting only analyzes exceptions that are **documented** in called methods. It does not perform deep static analysis of the called method's implementation.
+</Info>
+
+## Configuration Examples
+
+### Minimal Exception Documentation
+
+Only document custom exceptions:
+
+```ini
+[*.cs]
+# Ignore all System exceptions
+comment_sense.ignore_system_exceptions = true
+```
+
+### Selective Exception Documentation
+
+Ignore common validation exceptions but document others:
+
+```ini
+[*.cs]
+# Ignore argument validation exceptions
+comment_sense.ignored_exceptions = ArgumentNullException, ArgumentException, ArgumentOutOfRangeException
+
+# Still document other System exceptions
+comment_sense.ignore_system_exceptions = false
+```
+
+### Strict Exception Documentation
+
+Document all exceptions including those from called methods:
+
+```ini
+[*.cs]
+# Don't ignore any exceptions
+comment_sense.ignore_system_exceptions = false
+
+# Scan called methods for documented exceptions
+comment_sense.scan_called_methods_for_exceptions = true
+```
+
+### API-Specific Configuration
+
+Different rules for public API vs internal code:
+
+```ini
+root = true
+
+# Default: document custom exceptions only
+[*.cs]
+comment_sense.ignore_system_exceptions = true
+
+# Public API: document all exceptions
+[src/PublicApi/**/*.cs]
+comment_sense.ignore_system_exceptions = false
+comment_sense.scan_called_methods_for_exceptions = true
+
+# Internal utilities: ignore internal exceptions
+[src/Internal/**/*.cs]
+comment_sense.ignored_exception_namespaces = MyProject.Internal
+```
+
+## Combining Exception Filters
+
+Exception filters are cumulative. An exception is ignored if it matches **any** of the following:
+
+1. Listed in `ignored_exceptions`
+2. In the `System` namespace (if `ignore_system_exceptions = true`)
+3. In a namespace listed in `ignored_exception_namespaces`
+
+**Example:**
+
+```ini
+[*.cs]
+comment_sense.ignored_exceptions = ArgumentNullException
+comment_sense.ignore_system_exceptions = false
+comment_sense.ignored_exception_namespaces = MyProject.Internal
+```
+
+**Behavior:**
+
+```csharp
+public void Process(string data)
+{
+    // Not flagged - explicitly in ignored_exceptions
+    ArgumentNullException.ThrowIfNull(data);
+    
+    // CSENSE012 triggered - not in any ignore list
+    if (string.IsNullOrEmpty(data))
+        throw new InvalidOperationException();
+    
+    // Not flagged - in ignored namespace
+    if (!IsValid(data))
+        throw new MyProject.Internal.ValidationException();
+}
+```
+
+## Related Rules
+
+- **CSENSE012** - Missing exception documentation
+- **CSENSE017** - Invalid exception type in `<exception>` tag
+- **CSENSE023** - Stray or duplicate `<exception>` tags
+
+## Automatic Code Fixes
+
+CommentSense provides automatic code fixes for exception documentation:
+
+<CardGroup cols={2}>
+  <Card title="Generate Missing Exception Tag" icon="plus">
+    CSENSE012 offers a code fix to generate a missing `<exception>` tag with a placeholder. Supports **Fix All** in document, project, or solution.
+  </Card>
+  
+  <Card title="Rename Misspelled Exception" icon="pen">
+    If a fuzzy match is found among existing exception tags, a code fix to rename the tag is offered based on `rename_similarity_threshold`.
+  </Card>
+  
+  <Card title="Remove Stray Exception Tags" icon="trash">
+    CSENSE023 offers a code fix to remove stray or duplicate exception tags. Supports **Fix All** in document, project, or solution.
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+1. **Start conservatively** - Use `ignore_system_exceptions = true` initially to focus on custom exceptions
+2. **Be selective** - Use `ignored_exceptions` for specific exceptions you don't want to document
+3. **Document public APIs thoroughly** - Use stricter settings for public-facing code
+4. **Consider your audience** - If your API throws System exceptions that callers need to handle, document them
+5. **Use scoped configuration** - Apply different rules to different parts of your codebase
+6. **Review called method scanning carefully** - `scan_called_methods_for_exceptions = true` can be aggressive
+
+## See Also
+
+- [Visibility Levels](/configuration/visibility-levels) - Configure which members are analyzed
+- [Quality Checks](/configuration/quality-checks) - Configure rename similarity threshold
+- [Advanced Configuration](/configuration/advanced) - Additional configuration options

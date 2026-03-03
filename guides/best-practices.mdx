@@ -1,0 +1,536 @@
+---
+title: Best Practices
+description: Best practices for writing high-quality XML documentation with CommentSense
+---
+
+Follow these best practices to write clear, consistent, and maintainable XML documentation for your C# projects using CommentSense.
+
+## General Documentation Guidelines
+
+### Write for Your Audience
+
+<Tip>
+Good documentation explains **why** and **how**, not just **what**. The "what" is often apparent from the code itself.
+</Tip>
+
+<CodeGroup>
+```csharp Bad Example
+/// <summary>
+/// Gets or sets the name.
+/// </summary>
+public string Name { get; set; }
+```
+
+```csharp Good Example
+/// <summary>
+/// Gets or sets the user's full name as displayed in the UI.
+/// </summary>
+/// <value>
+/// A non-empty string containing the user's first and last name.
+/// Defaults to "Guest" if not set.
+/// </value>
+public string Name { get; set; } = "Guest";
+```
+</CodeGroup>
+
+### Be Concise but Complete
+
+CommentSense enforces minimum quality standards:
+- Summaries should start with a capital letter
+- Summaries should end with punctuation
+- Documentation should not just repeat the member name
+
+Configure these rules in your `.editorconfig`:
+
+```ini
+[*.cs]
+# Require summaries to start with capital letter
+comment_sense.require_capitalization = true
+
+# Require summaries to end with punctuation (. ! ?)
+comment_sense.require_ending_punctuation = true
+
+# Minimum length for summary text (excluding punctuation)
+comment_sense.min_summary_length = 10
+
+# Flag documentation that's too similar to the member name
+comment_sense.similarity_threshold = 0.8
+```
+
+### Use Semantic Markup
+
+Leverage XML documentation tags for semantic meaning:
+
+<CodeGroup>
+```csharp Keywords
+/// <summary>
+/// Returns <see langword="true" /> if the value is <see langword="null" />;
+/// otherwise, <see langword="false" />.
+/// </summary>
+public bool IsNull(object value) => value == null;
+```
+
+```csharp Cross-References
+/// <summary>
+/// Validates user input. See <see cref="ValidationRules" /> for details.
+/// </summary>
+/// <seealso cref="ValidationRules" />
+public bool Validate(string input) { /* ... */ }
+```
+
+```csharp Parameter References
+/// <summary>
+/// Processes the <paramref name="fileName" /> and saves output to
+/// <paramref name="outputPath" />.
+/// </summary>
+public void Process(string fileName, string outputPath) { /* ... */ }
+```
+</CodeGroup>
+
+CommentSense automatically detects missing semantic markup:
+- **CSENSE019**: Flags plain-text keywords that should use `<see langword="..." />`
+- **CSENSE020/CSENSE021**: Flags parameter names that should use `<paramref />` or `<typeparamref />`
+
+## Tag Organization
+
+### Follow a Consistent Tag Order
+
+CommentSense enforces tag ordering via **CSENSE024**. The default order is:
+
+1. `<inheritdoc />`
+2. `<summary>`
+3. `<typeparam>`
+4. `<param>`
+5. `<returns>`
+6. `<value>`
+7. `<exception>`
+8. `<remarks>`
+9. `<example>`
+10. `<seealso>`
+11. `<permission>`
+
+Customize this in your `.editorconfig`:
+
+```ini
+[*.cs]
+comment_sense.tag_order = inheritdoc, summary, param, returns, exception, remarks
+```
+
+<Tip>
+The code fix for CSENSE024 automatically reorders tags while preserving formatting and whitespace.
+</Tip>
+
+### Use `<inheritdoc />` Wisely
+
+When overriding or implementing base members, prefer `<inheritdoc />` to avoid duplication:
+
+<CodeGroup>
+```csharp Base Interface
+public interface IRepository<T>
+{
+    /// <summary>
+    /// Retrieves an entity by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier.</param>
+    /// <returns>The entity, or <see langword="null" /> if not found.</returns>
+    T GetById(int id);
+}
+```
+
+```csharp Implementation (Good)
+public class UserRepository : IRepository<User>
+{
+    /// <inheritdoc />
+    public User GetById(int id)
+    {
+        // Implementation
+    }
+}
+```
+
+```csharp Implementation (Also Good - with additional context)
+public class UserRepository : IRepository<User>
+{
+    /// <inheritdoc />
+    /// <remarks>
+    /// This implementation queries the database with caching enabled.
+    /// </remarks>
+    public User GetById(int id)
+    {
+        // Implementation
+    }
+}
+```
+</CodeGroup>
+
+By default, CommentSense allows implicit documentation inheritance. To require explicit `<inheritdoc />` tags:
+
+```ini
+[*.cs]
+comment_sense.allow_implicit_inheritdoc = false
+```
+
+This triggers **CSENSE018** when overriding/implementing members lack documentation.
+
+## Parameters and Return Values
+
+### Document All Parameters
+
+CommentSense enforces parameter documentation via **CSENSE002** and **CSENSE004**:
+
+```csharp
+/// <summary>
+/// Calculates the area of a rectangle.
+/// </summary>
+/// <param name="width">The width of the rectangle in units.</param>
+/// <param name="height">The height of the rectangle in units.</param>
+/// <returns>The area in square units.</returns>
+public double CalculateArea(double width, double height)
+{
+    return width * height;
+}
+```
+
+<Tip>
+Keep parameter documentation in the same order as the method signature. CommentSense's **CSENSE008** and **CSENSE010** enforce this.
+</Tip>
+
+### Use `<returns>` for Non-Void Methods
+
+**CSENSE006** requires `<returns>` tags for methods that return values (excluding `void`, `Task`, and `ValueTask`):
+
+```csharp
+/// <summary>
+/// Parses a JSON string into an object.
+/// </summary>
+/// <param name="json">The JSON string to parse.</param>
+/// <returns>
+/// A <typeparamref name="T" /> instance populated from the JSON data.
+/// </returns>
+/// <exception cref="JsonException">Thrown when the JSON is malformed.</exception>
+public T Parse<T>(string json) { /* ... */ }
+```
+
+### Consider `<value>` for Properties
+
+**CSENSE014** can require `<value>` tags for properties (disabled by default):
+
+```ini
+[*.cs]
+# Enable CSENSE014 to require <value> tags
+dotnet_diagnostic.CSENSE014.severity = warning
+```
+
+```csharp
+/// <summary>
+/// Gets the user's email address.
+/// </summary>
+/// <value>
+/// A valid email address string, or <see langword="null" /> if not set.
+/// </value>
+public string Email { get; set; }
+```
+
+## Exception Documentation
+
+### Document Thrown Exceptions
+
+CommentSense scans method bodies for explicitly thrown exceptions (**CSENSE012**):
+
+```csharp
+/// <summary>
+/// Divides two numbers.
+/// </summary>
+/// <param name="dividend">The number to divide.</param>
+/// <param name="divisor">The number to divide by.</param>
+/// <returns>The result of the division.</returns>
+/// <exception cref="ArgumentException">
+/// Thrown when <paramref name="divisor" /> is zero.
+/// </exception>
+public double Divide(double dividend, double divisor)
+{
+    if (divisor == 0)
+        throw new ArgumentException("Divisor cannot be zero.", nameof(divisor));
+    
+    return dividend / divisor;
+}
+```
+
+### Detecting Exceptions in Called Methods
+
+Enable deep exception scanning to detect exceptions documented in called methods:
+
+```ini
+[*.cs]
+comment_sense.scan_called_methods_for_exceptions = true
+```
+
+This makes CommentSense analyze constructors and methods you call to find their documented exceptions.
+
+### Ignoring Exceptions
+
+Exclude common exceptions from documentation requirements:
+
+```ini
+[*.cs]
+# Ignore specific exception types
+comment_sense.ignored_exceptions = ArgumentNullException, ArgumentOutOfRangeException
+
+# Ignore all exceptions in System namespace
+comment_sense.ignore_system_exceptions = true
+
+# Ignore exceptions in specific namespaces
+comment_sense.ignored_exception_namespaces = MyApp.Internal, System.Data
+```
+
+<Tip>
+Use exception ignoring for guard clauses and validation logic that throw standard framework exceptions.
+</Tip>
+
+## Quality Standards
+
+### Avoid Low-Quality Documentation
+
+**CSENSE016** detects low-quality documentation:
+
+<CodeGroup>
+```csharp Bad Examples
+/// <summary></summary>
+public class Empty { }
+
+/// <summary>TODO</summary>
+public class Todo { }
+
+/// <summary>UserRepository</summary>
+public class UserRepository { }
+
+/// <summary>gets the name</summary>
+public string Name { get; }
+```
+
+```csharp Good Examples
+/// <summary>
+/// Manages user data persistence and retrieval.
+/// </summary>
+public class UserRepository { }
+
+/// <summary>
+/// Gets the user's display name.
+/// </summary>
+public string Name { get; }
+```
+</CodeGroup>
+
+Configure low-quality detection:
+
+```ini
+[*.cs]
+# Flag these terms as low quality
+comment_sense.low_quality_terms = TODO, TBD, FixMe, None, N/A
+
+# Minimum summary length (excluding punctuation)
+comment_sense.min_summary_length = 15
+
+# Require proper capitalization
+comment_sense.require_capitalization = true
+
+# Require ending punctuation
+comment_sense.require_ending_punctuation = true
+
+# Flag summaries too similar to member name (0.0 = off, 1.0 = exact match)
+comment_sense.similarity_threshold = 0.75
+```
+
+### Use Examples for Complex APIs
+
+Provide `<example>` tags for non-obvious usage:
+
+```csharp
+/// <summary>
+/// Executes a query with parameterized values.
+/// </summary>
+/// <param name="query">The SQL query with parameter placeholders.</param>
+/// <param name="parameters">The parameter values.</param>
+/// <returns>The query results.</returns>
+/// <example>
+/// <code>
+/// var results = db.Execute(
+///     "SELECT * FROM Users WHERE Age > @age",
+///     new { age = 18 });
+/// </code>
+/// </example>
+public IEnumerable<T> Execute<T>(string query, object parameters) { /* ... */ }
+```
+
+## Visibility and Scope
+
+### Set Appropriate Visibility Thresholds
+
+Configure which members require documentation:
+
+```ini
+[*.cs]
+# Options: public, protected, internal, private
+comment_sense.visibility_level = protected  # Default
+```
+
+- **`public`**: Only public members
+- **`protected`**: Public and protected members (default)
+- **`internal`**: Public, protected, internal, and private protected
+- **`private`**: All members
+
+### Exclude Obvious Members
+
+Some members are self-documenting:
+
+```ini
+[*.cs]
+# Skip constants (e.g., public const string Version = "1.0")
+comment_sense.exclude_constants = true
+
+# Skip enum members
+comment_sense.exclude_enums = true
+```
+
+<Tip>
+Use exclusions for simple constants and enums, but document complex or non-obvious values.
+</Tip>
+
+## Configuration Management
+
+### Use `.editorconfig` Hierarchy
+
+Organize rules by scope:
+
+```ini
+# Root .editorconfig (solution level)
+root = true
+
+[*.cs]
+# Global standards
+comment_sense.visibility_level = protected
+comment_sense.require_capitalization = true
+comment_sense.require_ending_punctuation = true
+
+# Public API projects (src/PublicApi/.editorconfig)
+[src/PublicApi/**/*.cs]
+comment_sense.visibility_level = public
+comment_sense.min_summary_length = 20
+dotnet_diagnostic.CSENSE014.severity = warning  # Require <value> tags
+
+# Internal utilities (src/Utils/.editorconfig)
+[src/Utils/**/*.cs]
+comment_sense.exclude_constants = true
+comment_sense.exclude_enums = true
+```
+
+### Team Standards
+
+Define a shared configuration for your team:
+
+```ini
+# .editorconfig (team standard)
+[*.cs]
+# Visibility
+comment_sense.visibility_level = protected
+
+# Quality
+comment_sense.require_capitalization = true
+comment_sense.require_ending_punctuation = true
+comment_sense.min_summary_length = 15
+comment_sense.similarity_threshold = 0.75
+comment_sense.low_quality_terms = TODO, TBD, FixMe, HACK
+
+# Tag order
+comment_sense.tag_order = inheritdoc, summary, typeparam, param, returns, value, exception, remarks, example
+
+# Langwords
+comment_sense.langwords = true, false, null, void, async, await
+
+# Ghost references
+comment_sense.ghost_references.mode = safe
+
+# Exceptions
+comment_sense.ignored_exceptions = ArgumentNullException
+comment_sense.scan_called_methods_for_exceptions = false
+
+# Inheritance
+comment_sense.allow_implicit_inheritdoc = true
+
+# Suppressions
+comment_sense.enable_conditional_suppression = false
+```
+
+Commit this file to version control so all team members use the same standards.
+
+## Integration with CI/CD
+
+### Treat Warnings as Errors in CI
+
+Enforce documentation in your build pipeline:
+
+```xml
+<PropertyGroup>
+  <!-- Treat all warnings as errors in CI -->
+  <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+  
+  <!-- Or treat only specific diagnostics as errors -->
+  <WarningsAsErrors>CSENSE001;CSENSE002;CSENSE016</WarningsAsErrors>
+</PropertyGroup>
+```
+
+### Gradual Adoption
+
+For existing projects, adopt CommentSense gradually:
+
+<Steps>
+  <Step title="Start with Suggestions">
+    Set all CommentSense rules to `suggestion` severity.
+    
+    ```ini
+    [*.cs]
+    dotnet_diagnostic.CSENSE001.severity = suggestion
+    ```
+  </Step>
+  
+  <Step title="Fix New Code">
+    Apply fixes to new files only. Use File Scoped Configurations.
+  </Step>
+  
+  <Step title="Use Fix All Strategically">
+    Run Fix All on specific projects or namespaces, then review changes.
+  </Step>
+  
+  <Step title="Promote to Warnings">
+    Once baseline is clean, promote to `warning` severity.
+  </Step>
+  
+  <Step title="Enforce in CI">
+    Enable `TreatWarningsAsErrors` in CI builds.
+  </Step>
+</Steps>
+
+## Summary
+
+<CardGroup cols={2}>
+  <Card title="Write Meaningful Content" icon="book">
+    Explain why and how, not just what. Avoid low-quality placeholders.
+  </Card>
+  
+  <Card title="Use Semantic Markup" icon="code">
+    Leverage `<see langword />`, `<paramref />`, and `<cref />` for clarity.
+  </Card>
+  
+  <Card title="Maintain Consistency" icon="check">
+    Use `.editorconfig` to enforce team-wide standards for tag order, quality, and visibility.
+  </Card>
+  
+  <Card title="Automate Enforcement" icon="robot">
+    Integrate CommentSense into CI/CD to catch issues early.
+  </Card>
+</CardGroup>
+
+See also:
+- [Configuration Guide](/configuration) for all `.editorconfig` options
+- [Code Fixes](/guides/code-fixes) for automated documentation generation
+- [Rules Reference](/rules) for diagnostic details

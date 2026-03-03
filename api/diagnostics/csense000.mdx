@@ -1,0 +1,62 @@
+---
+title: CSENSE000 - Disabled Documentation Parsing
+description: XML documentation parsing is disabled
+---
+
+# CSENSE000: Disabled Documentation Parsing
+
+<ParamField query="ID" type="string" default="CSENSE000">
+  The diagnostic identifier
+</ParamField>
+
+<ParamField query="Category" type="string" default="Documentation">
+  The diagnostic category
+</ParamField>
+
+<ParamField query="Severity" type="DiagnosticSeverity" default="Warning">
+  The default severity level
+</ParamField>
+
+<ParamField query="Enabled by Default" type="boolean" default="true">
+  Whether this rule is enabled by default
+</ParamField>
+
+## Description
+
+CommentSense relies on the compiler's documentation parsing. This diagnostic is reported when XML documentation parsing is disabled for one or more files in the project.
+
+## Why This Rule Exists
+
+CommentSense requires the compiler to parse XML documentation comments in order to analyze them. Without documentation parsing enabled, CommentSense cannot function properly.
+
+## How to Fix
+
+Enable XML documentation parsing by adding `<GenerateDocumentationFile>true</GenerateDocumentationFile>` to your project file (.csproj):
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>
+```
+
+## Examples
+
+### Violation
+
+When `GenerateDocumentationFile` is not set to `true` in your project file, this diagnostic will be reported at the compilation level:
+
+```csharp
+// CSENSE000: XML documentation parsing is disabled for one or more files in this project.
+// CommentSense requires it to be enabled.
+```
+
+### Fixed
+
+After adding `<GenerateDocumentationFile>true</GenerateDocumentationFile>` to your project file, the diagnostic will be resolved.
+
+## Configuration
+
+This diagnostic cannot be configured or disabled, as it indicates a fundamental requirement for CommentSense to operate.

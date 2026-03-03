@@ -1,0 +1,476 @@
+---
+title: Parameter Documentation Rules
+description: Rules for documenting method parameters and generic type parameters
+---
+
+These rules ensure that parameters and type parameters are correctly documented and referenced.
+
+## CSENSE002 - Missing Parameter Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (generates `<param>` placeholder, offers rename if fuzzy match found)
+
+### Description
+
+Flags parameters defined in code but missing from documentation.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE002">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Adds two numbers.</summary>
+    public int Add(int a, int b) // CSENSE002 on both 'a' and 'b'
+    {
+        return a + b;
+    }
+
+    /// <summary>Processes data.</summary>
+    /// <param name="value">The first value.</param>
+    public void Process(int value, string name) // CSENSE002 on 'name'
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Adds two numbers.</summary>
+    /// <param name="a">The first number.</param>
+    /// <param name="b">The second number.</param>
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    /// <summary>Processes data.</summary>
+    /// <param name="value">The first value.</param>
+    /// <param name="name">The name to process.</param>
+    public void Process(int value, string name)
+    {
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE003 - Stray Parameter Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes stray tags, offers rename if fuzzy match found)
+
+### Description
+
+Flags `<param>` tags referring to parameters that do not exist, or that are nested within other tags.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE003">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Adds two numbers.</summary>
+    /// <param name="a">The first number.</param>
+    /// <param name="b">The second number.</param>
+    /// <param name="c">The third number.</param> // CSENSE003 - parameter doesn't exist
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    /// <summary>
+    /// <param name="x">Nested param.</param> // CSENSE003 - nested within <summary>
+    /// </summary>
+    /// <param name="x">Valid param.</param>
+    public void Method(int x)
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Adds two numbers.</summary>
+    /// <param name="a">The first number.</param>
+    /// <param name="b">The second number.</param>
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE004 - Missing Type Parameter Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (generates `<typeparam>` placeholder, offers rename if fuzzy match found)
+
+### Description
+
+Flags type parameters defined in code but missing from documentation.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE004">
+```csharp
+/// <summary>A generic class.</summary>
+public class MyClass<T> // CSENSE004 on 'T'
+{
+}
+
+/// <summary>A generic class with multiple type parameters.</summary>
+/// <typeparam name="T">The first type parameter.</typeparam>
+public class MyClass<T, U> // CSENSE004 on 'U'
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="T">The type of elements.</typeparam>
+public class MyClass<T>
+{
+}
+
+/// <summary>A generic class with multiple type parameters.</summary>
+/// <typeparam name="T">The first type parameter.</typeparam>
+/// <typeparam name="U">The second type parameter.</typeparam>
+public class MyClass<T, U>
+{
+}
+```
+</Accordion>
+
+---
+
+## CSENSE005 - Stray Type Parameter Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes stray tags, offers rename if fuzzy match found)
+
+### Description
+
+Flags `<typeparam>` tags referring to type parameters that do not exist.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE005">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="T">The type of elements.</typeparam>
+/// <typeparam name="U">Another type parameter.</typeparam> // CSENSE005 - doesn't exist
+public class MyClass<T>
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="T">The type of elements.</typeparam>
+public class MyClass<T>
+{
+}
+```
+</Accordion>
+
+---
+
+## CSENSE008 - Parameter Documentation Order Mismatch
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (reorders tags to match signature)
+
+### Description
+
+Enforces that the order of `<param>` tags in documentation matches the method signature.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE008">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes values.</summary>
+    /// <param name="b">The second value.</param>
+    /// <param name="a">The first value.</param> // CSENSE008 - wrong order
+    public void Process(int a, int b)
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes values.</summary>
+    /// <param name="a">The first value.</param>
+    /// <param name="b">The second value.</param>
+    public void Process(int a, int b)
+    {
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE009 - Duplicate Parameter Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes duplicate tags)
+
+### Description
+
+Flags duplicate `<param>` tags for the same parameter.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE009">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes a value.</summary>
+    /// <param name="value">The first description.</param>
+    /// <param name="value">The second description.</param> // CSENSE009
+    public void Process(int value)
+    {
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>Processes a value.</summary>
+    /// <param name="value">The value to process.</param>
+    public void Process(int value)
+    {
+    }
+}
+```
+</Accordion>
+
+---
+
+## CSENSE010 - Type Parameter Documentation Order Mismatch
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (reorders tags to match signature)
+
+### Description
+
+Enforces that the order of `<typeparam>` tags matches the type declaration.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE010">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="U">The second type parameter.</typeparam>
+/// <typeparam name="T">The first type parameter.</typeparam> // CSENSE010
+public class MyClass<T, U>
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="T">The first type parameter.</typeparam>
+/// <typeparam name="U">The second type parameter.</typeparam>
+public class MyClass<T, U>
+{
+}
+```
+</Accordion>
+
+---
+
+## CSENSE011 - Duplicate Type Parameter Documentation
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (removes duplicate tags)
+
+### Description
+
+Flags duplicate `<typeparam>` tags for the same type parameter.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE011">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="T">The first description.</typeparam>
+/// <typeparam name="T">The second description.</typeparam> // CSENSE011
+public class MyClass<T>
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>A generic class.</summary>
+/// <typeparam name="T">The type of elements.</typeparam>
+public class MyClass<T>
+{
+}
+```
+</Accordion>
+
+---
+
+## CSENSE020 - Ghost Parameter Reference
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (wraps references in `<paramref />`)
+
+### Description
+
+Flags parameter names used in documentation text that are not wrapped in `<paramref />` tags.
+
+### When it triggers
+
+<Accordion title="Examples that trigger CSENSE020">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>If userName is null, throws an exception.</summary> // CSENSE020 on 'userName'
+    /// <param name="userName">The user's name.</param>
+    public void Process(string userName)
+    {
+    }
+
+    /// <summary>Compares firstValue with secondValue.</summary> // CSENSE020 on both
+    /// <param name="firstValue">The first value.</param>
+    /// <param name="secondValue">The second value.</param>
+    public bool Compare(int firstValue, int secondValue)
+    {
+        return firstValue == secondValue;
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Correct examples">
+```csharp
+/// <summary>A documented class.</summary>
+public class MyClass
+{
+    /// <summary>If <paramref name="userName"/> is null, throws an exception.</summary>
+    /// <param name="userName">The user's name.</param>
+    public void Process(string userName)
+    {
+    }
+
+    /// <summary>Compares <paramref name="firstValue"/> with <paramref name="secondValue"/>.</summary>
+    /// <param name="firstValue">The first value.</param>
+    /// <param name="secondValue">The second value.</param>
+    public bool Compare(int firstValue, int secondValue)
+    {
+        return firstValue == secondValue;
+    }
+}
+```
+</Accordion>
+
+### Configuration
+
+```ini
+[*.cs]
+# Options: safe, strict, off
+# safe: Only flags complex names (camelCase, PascalCase, underscores, or digits). Ignores simple lowercase words (default).
+# strict: Flags all matching parameter names regardless of casing or length.
+# off: Disables ghost reference detection.
+comment_sense.ghost_references.mode = safe
+```
+
+<Warning>
+By default, only "complex" names (camelCase, PascalCase, or containing underscores/digits) are flagged. Simple lowercase words are ignored to reduce false positives.
+</Warning>
+
+---
+
+## CSENSE021 - Ghost Type Parameter Reference
+
+**Severity:** Warning  
+**Category:** Documentation  
+**Code Fix:** Yes (wraps references in `<typeparamref />`)
+
+### Description
+
+Flags type parameter names mentioned in documentation text without `<typeparamref />` tags.
+
+### When it triggers
+
+<Accordion title="Example that triggers CSENSE021">
+```csharp
+/// <summary>
+/// A generic collection where TElement represents the element type. // CSENSE021 on 'TElement'
+/// </summary>
+/// <typeparam name="TElement">The type of elements in the collection.</typeparam>
+public class MyCollection<TElement>
+{
+}
+```
+</Accordion>
+
+<Accordion title="Correct example">
+```csharp
+/// <summary>
+/// A generic collection where <typeparamref name="TElement"/> represents the element type.
+/// </summary>
+/// <typeparam name="TElement">The type of elements in the collection.</typeparam>
+public class MyCollection<TElement>
+{
+}
+```
+</Accordion>
+
+### Configuration
+
+Uses the same `comment_sense.ghost_references.mode` setting as CSENSE020.
+
+```ini
+[*.cs]
+# Options: safe, strict, off
+comment_sense.ghost_references.mode = safe
+```

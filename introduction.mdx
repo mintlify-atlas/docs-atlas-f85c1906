@@ -1,0 +1,160 @@
+---
+title: Introduction
+description: CommentSense is a Roslyn-based diagnostic analyzer that ensures your C# public APIs are consistently and meaningfully documented.
+---
+
+## What is CommentSense?
+
+CommentSense is a Roslyn-based diagnostic analyzer for C# designed to ensure that public-facing APIs are consistently and meaningfully documented. It goes beyond the standard C# compiler warnings to provide comprehensive XML documentation analysis, automatic code fixes, and intelligent quality checks.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Comprehensive Documentation Analysis" icon="magnifying-glass">
+    Analyzes XML documentation for completeness, quality, and correctness across all public API surfaces including classes, methods, properties, parameters, and exceptions.
+  </Card>
+  
+  <Card title="Intelligent Code Fixes" icon="wand-magic-sparkles">
+    Automatic code fixes for common documentation issues with full support for Fix All in document, project, or solution scope.
+  </Card>
+  
+  <Card title="Quality Enforcement" icon="shield-check">
+    Detects low-quality documentation such as empty summaries, placeholder text, or descriptions that simply repeat the member name.
+  </Card>
+  
+  <Card title="Highly Configurable" icon="sliders">
+    Fine-tune behavior through .editorconfig with options for visibility levels, quality thresholds, ignored exceptions, and more.
+  </Card>
+</CardGroup>
+
+## Why CommentSense?
+
+The C# compiler provides basic XML documentation warnings (CS1591, CS1573, etc.), but they're limited in scope and functionality. CommentSense builds on these foundations to provide:
+
+- **Quality Analysis**: Ensure documentation is meaningful, not just present
+- **Exception Tracking**: Automatically detect thrown exceptions and ensure they're documented
+- **Smart References**: Flag parameter and keyword references that should use proper XML tags
+- **Consistency Checks**: Enforce tag ordering, proper use of `<inheritdoc />`, and more
+- **Automatic Suppression**: Replaces overlapping C# compiler warnings to reduce noise
+
+<Note>
+  CommentSense automatically suppresses several built-in C# compiler diagnostics (CS1591, CS1573, CS1572, CS1571, CS1584, CS1574, CS1658) that overlap with its own rules, providing a cleaner experience.
+</Note>
+
+## Documentation Rules Overview
+
+CommentSense provides 26 diagnostic rules organized into categories:
+
+### General Documentation
+- **CSENSE001**: Missing XML documentation on public members
+- **CSENSE016**: Low-quality documentation detection
+- **CSENSE007**: Invalid `cref` attribute validation
+- **CSENSE019**: C# keyword recommendations for `<see langword="..." />`
+- **CSENSE024**: XML documentation tag ordering
+
+### Parameters & Type Parameters
+- **CSENSE002/004**: Missing parameter or type parameter documentation
+- **CSENSE003/005**: Stray parameter tags
+- **CSENSE008/010**: Parameter ordering enforcement
+- **CSENSE020/021**: Ghost reference detection (unwrapped parameter names)
+
+### Return Values & Exceptions
+- **CSENSE006**: Missing `<returns>` tags
+- **CSENSE012**: Missing exception documentation with body scanning
+- **CSENSE017**: Exception type validation
+
+### Properties
+- **CSENSE014**: Optional `<value>` tag requirements
+- **CSENSE015**: Stray `<value>` tags
+
+<Info>
+  See the full [Rules Reference](/rules) for detailed information about each diagnostic.
+</Info>
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install CommentSense via NuGet and configure your project
+  </Card>
+  
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get from installation to your first working example in minutes
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration/overview">
+    Learn how to customize CommentSense behavior via .editorconfig
+  </Card>
+  
+  <Card title="Rules Reference" icon="book" href="/rules/overview">
+    Explore all available diagnostic rules and their options
+  </Card>
+</CardGroup>
+
+## Requirements
+
+CommentSense requires XML documentation generation to be enabled in your project. Add this to your `.csproj` file:
+
+```xml
+<PropertyGroup>
+  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+</PropertyGroup>
+```
+
+<Warning>
+  Without `GenerateDocumentationFile` enabled, CommentSense will report **CSENSE000** and cannot analyze your documentation.
+</Warning>
+
+## Example
+
+Here's what CommentSense helps you catch:
+
+```csharp
+// ❌ Missing documentation - CSENSE001
+public class MyClass
+{
+    // ❌ Low quality documentation - CSENSE016  
+    /// <summary>MyMethod</summary>
+    public void MyMethod(string name)
+    {
+        // ❌ Missing exception documentation - CSENSE012
+        throw new ArgumentNullException(nameof(name));
+    }
+}
+```
+
+With CommentSense's automatic code fixes:
+
+```csharp
+/// <summary>Represents a custom class for demonstration.</summary>
+public class MyClass
+{
+    /// <summary>Processes the provided name parameter.</summary>
+    /// <param name="name">The name to process.</param>
+    /// <exception cref="ArgumentNullException">Thrown when name is null.</exception>
+    public void MyMethod(string name)
+    {
+        throw new ArgumentNullException(nameof(name));
+    }
+}
+```
+
+## Next Steps
+
+<Steps>
+  <Step title="Install CommentSense">
+    Follow the [installation guide](/installation) to add CommentSense to your project.
+  </Step>
+  
+  <Step title="Complete the Quick Start">
+    Work through the [quick start guide](/quickstart) to see CommentSense in action.
+  </Step>
+  
+  <Step title="Configure Your Preferences">
+    Customize behavior using the [configuration guide](/configuration/overview).
+  </Step>
+  
+  <Step title="Explore the Rules">
+    Review the [rules reference](/rules/overview) to understand all available diagnostics.
+  </Step>
+</Steps>
