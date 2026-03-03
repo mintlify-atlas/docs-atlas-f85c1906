@@ -1,0 +1,130 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "CommentSense",
+  "projectDescription": "A Roslyn analyzer for C# that enforces meaningful XML documentation on public APIs",
+  "theme": "aspen",
+  "primaryColor": "#0078D4",
+  "lightColor": "#50A0E8",
+  "darkColor": "#005A9E",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/overview",
+              "configuration/visibility-levels",
+              "configuration/quality-checks",
+              "configuration/exceptions",
+              "configuration/advanced"
+            ]
+          },
+          {
+            "group": "Rules",
+            "pages": [
+              "rules/overview",
+              "rules/general-documentation",
+              "rules/parameters",
+              "rules/return-values",
+              "rules/exceptions",
+              "rules/properties"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/code-fixes",
+              "guides/suppression",
+              "guides/best-practices",
+              "guides/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Diagnostic Rules",
+            "pages": [
+              "api/diagnostics/csense000",
+              "api/diagnostics/csense001",
+              "api/diagnostics/csense002-005",
+              "api/diagnostics/csense006-013",
+              "api/diagnostics/csense014-025"
+            ]
+          },
+          {
+            "group": "Configuration Options",
+            "pages": [
+              "api/configuration/options-reference"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Contributing",
+        "groups": [
+          {
+            "group": "Development",
+            "pages": [
+              "contributing/overview",
+              "contributing/architecture",
+              "contributing/testing",
+              "contributing/performance"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Enforces XML documentation on public APIs with configurable visibility levels",
+    "Validates documentation quality including capitalization, punctuation, and content similarity",
+    "Ensures parameters, type parameters, return values, and exceptions are properly documented",
+    "Detects stray, duplicate, and misordered documentation tags",
+    "Validates cref attributes and accessibility of referenced symbols",
+    "Recommends langword tags for C# keywords and paramref/typeparamref for parameter references",
+    "Supports implicit documentation inheritance for overriding members",
+    "Provides automatic code fixes with Fix All support",
+    "Automatically suppresses overlapping C# compiler warnings"
+  ],
+  "publicApiSurface": [
+    "CSENSE000 - XML documentation parsing disabled",
+    "CSENSE001 - Missing documentation",
+    "CSENSE002 - Missing parameter documentation",
+    "CSENSE003 - Stray parameter documentation",
+    "CSENSE004 - Missing type parameter documentation",
+    "CSENSE005 - Stray type parameter documentation",
+    "CSENSE006 - Missing return value documentation",
+    "CSENSE007 - Invalid XML documentation reference",
+    "CSENSE008 - Parameter documentation order mismatch",
+    "CSENSE009 - Duplicate parameter documentation",
+    "CSENSE010 - Type parameter documentation order mismatch",
+    "CSENSE011 - Duplicate type parameter documentation",
+    "CSENSE012 - Missing exception documentation",
+    "CSENSE013 - Stray return value documentation",
+    "CSENSE014 - Missing value documentation",
+    "CSENSE015 - Stray value documentation",
+    "CSENSE016 - Low-quality documentation",
+    "CSENSE017 - Invalid exception type",
+    "CSENSE018 - Missing inheritdoc for inheriting member",
+    "CSENSE019 - Use langword for keywords",
+    "CSENSE020 - Ghost parameter reference",
+    "CSENSE021 - Ghost type parameter reference",
+    "CSENSE022 - Stray summary documentation",
+    "CSENSE023 - Stray exception documentation",
+    "CSENSE024 - Documentation tag order mismatch",
+    "CSENSE025 - Inaccessible cref reference"
+  ]
+}
